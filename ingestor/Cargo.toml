@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["crates/core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+aq-core = { path = "crates/core" }
+aq-source-arpae = { path = "crates/source-arpae" }
+aq-sink-parquet = { path = "crates/sink-parquet" }
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+thiserror = "2"
+tracing = "0.1"
+serde = { version = "1", features = ["derive"] }
+tempfile = "3"
