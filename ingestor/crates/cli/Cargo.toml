@@ -1,0 +1,25 @@
+[package]
+name = "aq-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "aq-ingest"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+aq-core.workspace = true
+aq-sink-parquet.workspace = true
+aq-source-arpae.workspace = true
+chrono.workspace = true
+clap = { version = "4", features = ["derive", "env"] }
+serde.workspace = true
+toml = "0.8"
+tracing.workspace = true
+tracing-subscriber = { version = "0.3", features = ["json"] }
+
+[dev-dependencies]
+tempfile.workspace = true

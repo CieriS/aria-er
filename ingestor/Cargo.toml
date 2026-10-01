@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/core", "crates/source-arpae", "crates/sink-parquet"]
+members = ["crates/core", "crates/source-arpae", "crates/sink-parquet", "crates/cli"]
 
 [workspace.package]
 version = "0.1.0"

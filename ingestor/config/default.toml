@@ -1,0 +1,32 @@
+# aq-ingest configuration.
+# Every value can be overridden with an environment variable named
+# AQ_<SECTION>__<KEY>, e.g. AQ_RUN__REPROCESS_WINDOW_DAYS=45.
+
+[arpae]
+ckan_base_url = "https://dati.arpae.it"
+# "Dati osservati di qualità dell'aria" (near-real-time datastore resource).
+measurements_resource_id = "4dc855a1-6298-4b71-a1ae-d80693d43dcb"
+stations_csv_url = "https://docs.google.com/spreadsheets/d/1-4wgZ8JeLeg0bODTSFUrshPY-_y9mERUu0FJtSFr78s/export?format=csv"
+pollutants_csv_url = "https://docs.google.com/spreadsheets/d/1K6vRcShjje2CDnvnk39o3jkU4ihgpA7rfsdAV1S-yXU/export?format=csv"
+# Published timestamps do not follow daylight saving: assumed UTC+1 all year.
+utc_offset_hours = 1
+page_size = 32000
+
+[http]
+connect_timeout_secs = 10
+# The datastore SQL endpoint routinely takes 40 s or more to answer.
+timeout_secs = 180
+max_attempts = 5
+initial_backoff_ms = 1000
+
+[sink]
+measurements_dir = "raw/arpae/measurements"
+stations_dir = "raw/arpae/stations"
+
+[run]
+# Days reprocessed on every run, to pick up revisions of provisional data.
+reprocess_window_days = 30
+
+[log]
+# "text" or "json"
+format = "text"
