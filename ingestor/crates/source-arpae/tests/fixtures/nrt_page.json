@@ -1,0 +1,801 @@
+{
+ "help": "https://dati.arpae.it/api/3/action/help_show?name=datastore_search_sql",
+ "success": true,
+ "result": {
+  "records": [
+   {
+    "station_id": "7000014",
+    "variable_id": "111",
+    "reftime": "07/31/2026 00:00",
+    "value": "15",
+    "v_flag": "G",
+    "_id": 1000
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "111",
+    "reftime": "08/05/2026 00:00",
+    "value": "16",
+    "v_flag": "M",
+    "_id": 1001
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "5",
+    "reftime": "07/31/2026 00:00",
+    "value": "25",
+    "v_flag": "G",
+    "_id": 1002
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 00:00",
+    "value": "122",
+    "v_flag": "G",
+    "_id": 1003
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 01:00",
+    "value": "128",
+    "v_flag": "M",
+    "_id": 1004
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 02:00",
+    "value": "124",
+    "v_flag": "M",
+    "_id": 1005
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 03:00",
+    "value": "123",
+    "v_flag": "M",
+    "_id": 1006
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 04:00",
+    "value": "115",
+    "v_flag": "M",
+    "_id": 1007
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 05:00",
+    "value": "120",
+    "v_flag": "M",
+    "_id": 1008
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 06:00",
+    "value": "118",
+    "v_flag": "M",
+    "_id": 1009
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 07:00",
+    "value": "113",
+    "v_flag": "M",
+    "_id": 1010
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 08:00",
+    "value": "112",
+    "v_flag": "M",
+    "_id": 1011
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 09:00",
+    "value": "137",
+    "v_flag": "M",
+    "_id": 1012
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 10:00",
+    "value": "159",
+    "v_flag": "M",
+    "_id": 1013
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 11:00",
+    "value": "166",
+    "v_flag": "M",
+    "_id": 1014
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 12:00",
+    "value": "160",
+    "v_flag": "M",
+    "_id": 1015
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 13:00",
+    "value": "163",
+    "v_flag": "M",
+    "_id": 1016
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 14:00",
+    "value": "164",
+    "v_flag": "M",
+    "_id": 1017
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 15:00",
+    "value": "158",
+    "v_flag": "M",
+    "_id": 1018
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 16:00",
+    "value": "157",
+    "v_flag": "M",
+    "_id": 1019
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 17:00",
+    "value": "149",
+    "v_flag": "M",
+    "_id": 1020
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 18:00",
+    "value": "128",
+    "v_flag": "M",
+    "_id": 1021
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 19:00",
+    "value": "104",
+    "v_flag": "M",
+    "_id": 1022
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 20:00",
+    "value": "91",
+    "v_flag": "M",
+    "_id": 1023
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 21:00",
+    "value": "98",
+    "v_flag": "M",
+    "_id": 1024
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 22:00",
+    "value": "101",
+    "v_flag": "M",
+    "_id": 1025
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "07/31/2026 23:00",
+    "value": "101",
+    "v_flag": "M",
+    "_id": 1026
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 00:00",
+    "value": "103",
+    "v_flag": "M",
+    "_id": 1027
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 01:00",
+    "value": "98",
+    "v_flag": "M",
+    "_id": 1028
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 02:00",
+    "value": "89",
+    "v_flag": "M",
+    "_id": 1029
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 03:00",
+    "value": "88",
+    "v_flag": "M",
+    "_id": 1030
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 04:00",
+    "value": "88",
+    "v_flag": "M",
+    "_id": 1031
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 05:00",
+    "value": "88",
+    "v_flag": "M",
+    "_id": 1032
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 06:00",
+    "value": "88",
+    "v_flag": "M",
+    "_id": 1033
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 07:00",
+    "value": "79",
+    "v_flag": "M",
+    "_id": 1034
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 08:00",
+    "value": "88",
+    "v_flag": "M",
+    "_id": 1035
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 09:00",
+    "value": "96",
+    "v_flag": "M",
+    "_id": 1036
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 10:00",
+    "value": "112",
+    "v_flag": "M",
+    "_id": 1037
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 11:00",
+    "value": "136",
+    "v_flag": "M",
+    "_id": 1038
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 12:00",
+    "value": "154",
+    "v_flag": "M",
+    "_id": 1039
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 13:00",
+    "value": "154",
+    "v_flag": "M",
+    "_id": 1040
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 14:00",
+    "value": "149",
+    "v_flag": "M",
+    "_id": 1041
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 15:00",
+    "value": "142",
+    "v_flag": "M",
+    "_id": 1042
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 16:00",
+    "value": "140",
+    "v_flag": "M",
+    "_id": 1043
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 17:00",
+    "value": "140",
+    "v_flag": "M",
+    "_id": 1044
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 18:00",
+    "value": "135",
+    "v_flag": "M",
+    "_id": 1045
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 19:00",
+    "value": "130",
+    "v_flag": "M",
+    "_id": 1046
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 20:00",
+    "value": "149",
+    "v_flag": "M",
+    "_id": 1047
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 21:00",
+    "value": "124",
+    "v_flag": "M",
+    "_id": 1048
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 22:00",
+    "value": "111",
+    "v_flag": "M",
+    "_id": 1049
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "7",
+    "reftime": "08/05/2026 23:00",
+    "value": "104",
+    "v_flag": "M",
+    "_id": 1050
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 00:00",
+    "value": "5",
+    "v_flag": "G",
+    "_id": 1051
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 01:00",
+    "value": "4",
+    "v_flag": "M",
+    "_id": 1052
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 02:00",
+    "value": "4",
+    "v_flag": "M",
+    "_id": 1053
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 03:00",
+    "value": "4",
+    "v_flag": "M",
+    "_id": 1054
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 04:00",
+    "value": "4",
+    "v_flag": "M",
+    "_id": 1055
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 05:00",
+    "value": "4",
+    "v_flag": "M",
+    "_id": 1056
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 06:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1057
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 07:00",
+    "value": "6",
+    "v_flag": "M",
+    "_id": 1058
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 08:00",
+    "value": "7",
+    "v_flag": "M",
+    "_id": 1059
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 09:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1060
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 10:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1061
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 11:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1062
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 12:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1063
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 13:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1064
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 14:00",
+    "value": "4",
+    "v_flag": "M",
+    "_id": 1065
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 15:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1066
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 16:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1067
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 17:00",
+    "value": "6",
+    "v_flag": "M",
+    "_id": 1068
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 18:00",
+    "value": "8",
+    "v_flag": "M",
+    "_id": 1069
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 19:00",
+    "value": "13",
+    "v_flag": "M",
+    "_id": 1070
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 20:00",
+    "value": "16",
+    "v_flag": "M",
+    "_id": 1071
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 21:00",
+    "value": "11",
+    "v_flag": "M",
+    "_id": 1072
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 22:00",
+    "value": "9",
+    "v_flag": "M",
+    "_id": 1073
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "07/31/2026 23:00",
+    "value": "9",
+    "v_flag": "M",
+    "_id": 1074
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 00:00",
+    "value": "3",
+    "v_flag": "M",
+    "_id": 1075
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 01:00",
+    "value": "3",
+    "v_flag": "M",
+    "_id": 1076
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 02:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1077
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 03:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1078
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 04:00",
+    "value": "4",
+    "v_flag": "M",
+    "_id": 1079
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 05:00",
+    "value": "3",
+    "v_flag": "M",
+    "_id": 1080
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 06:00",
+    "value": "4",
+    "v_flag": "M",
+    "_id": 1081
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 07:00",
+    "value": "7",
+    "v_flag": "M",
+    "_id": 1082
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 08:00",
+    "value": "7",
+    "v_flag": "M",
+    "_id": 1083
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 09:00",
+    "value": "10",
+    "v_flag": "M",
+    "_id": 1084
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 10:00",
+    "value": "12",
+    "v_flag": "M",
+    "_id": 1085
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 11:00",
+    "value": "10",
+    "v_flag": "M",
+    "_id": 1086
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 12:00",
+    "value": "9",
+    "v_flag": "M",
+    "_id": 1087
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 13:00",
+    "value": "8",
+    "v_flag": "M",
+    "_id": 1088
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 14:00",
+    "value": "7",
+    "v_flag": "M",
+    "_id": 1089
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 15:00",
+    "value": "6",
+    "v_flag": "M",
+    "_id": 1090
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 16:00",
+    "value": "5",
+    "v_flag": "M",
+    "_id": 1091
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 17:00",
+    "value": "6",
+    "v_flag": "M",
+    "_id": 1092
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 18:00",
+    "value": "7",
+    "v_flag": "M",
+    "_id": 1093
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 19:00",
+    "value": "7",
+    "v_flag": "M",
+    "_id": 1094
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 20:00",
+    "value": "10",
+    "v_flag": "M",
+    "_id": 1095
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 21:00",
+    "value": "11",
+    "v_flag": "M",
+    "_id": 1096
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 22:00",
+    "value": "9",
+    "v_flag": "M",
+    "_id": 1097
+   },
+   {
+    "station_id": "7000014",
+    "variable_id": "8",
+    "reftime": "08/05/2026 23:00",
+    "value": "8",
+    "v_flag": "M",
+    "_id": 1098
+   }
+  ],
+  "fields": []
+ }
+}
