@@ -28,7 +28,49 @@ historized and tested dataset that answers questions like:
 
 ## Status
 
-🚧 Work in progress — phase 0 (data exploration) is complete. See the roadmap below.
+🚧 Work in progress — phases 0 (data exploration) and 1 (Rust ingestor) are complete.
+See the roadmap below.
+
+## How to run
+
+Requirements: a stable Rust toolchain (edition 2021) and `make`.
+
+```bash
+make ingest                                   # last 30 days (reprocessing window)
+make ingest FROM=2026-08-01 TO=2026-08-31     # explicit window, inclusive
+make test                                     # unit and integration tests (no network)
+make lint                                     # cargo fmt --check + clippy -D warnings
+```
+
+`make ingest` runs `aq-ingest run [--from YYYY-MM-DD] [--to YYYY-MM-DD]`. It downloads
+the station registry and the measurements of the window, and writes:
+
+```
+raw/arpae/measurements/year=YYYY/month=MM/part-0.parquet
+raw/arpae/stations/extracted_on=YYYY-MM-DD/stations.parquet
+```
+
+A full month for the whole region is ~113k rows and takes about 4 minutes, almost all of
+it waiting for the ARPAE API (~40 s per request).
+
+Configuration lives in [ingestor/config/default.toml](ingestor/config/default.toml)
+(endpoints, timeouts, retries, output paths, reprocessing window, log format). Any value
+can be overridden with an environment variable `AQ_<SECTION>__<KEY>`, for example
+`AQ_RUN__REPROCESS_WINDOW_DAYS=45` or `AQ_LOG__FORMAT=json`.
+
+### Raw measurements schema
+
+| Column | Type | Notes |
+|---|---|---|
+| `station_id` | uint32 | Canonical station code (`7000014`) |
+| `pollutant_id` | uint32 | ARPAE parameter id (5 = PM10, 8 = NO2, …) |
+| `measured_at` | timestamp (µs, UTC) | Published reference time converted to UTC |
+| `value` | float64 | As published, not converted |
+| `unit` | string, nullable | Unit of `value` from the pollutant registry |
+| `validation_flag` | string | Source flag, verbatim (`M` / `G`) |
+| `raw_reftime` | string | Reference time exactly as published |
+
+Natural key: `(station_id, pollutant_id, measured_at)`. Rows are sorted by key.
 
 ## Architecture (target)
 
@@ -74,6 +116,25 @@ Phase 0 analysed one year (2025) of data for the Bologna stations. Each issue ma
 | **Many exact zeros** (e.g. 242 hourly NO values at one station) | Likely below the detection limit or rounding. Keep the values and add a quality flag rather than dropping them silently, so the analyses can decide how to treat them. |
 | **Timezone not declared**: timestamps do not follow daylight saving (24 hours on DST days) | Treated as fixed-offset local standard time (UTC+1) pending confirmation from ARPAE. Converted to UTC in storage. Europe/Rome is used only for presentation. |
 
+## Design decisions (phase 1)
+
+- **Upsert by rewriting partitions** ([ADR 0001](docs/adr/0001-parquet-upsert-by-partition-rewrite.md)).
+  Each run merges the incoming rows into the monthly files it touches, by natural key,
+  and rewrites them sorted. Re-running a window yields byte-identical files and never
+  duplicates; a revised value replaces the provisional one.
+- **Near-real-time datastore as the only source for now**
+  ([ADR 0002](docs/adr/0002-near-real-time-datastore-as-phase-1-source.md)). One SQL query
+  per window with keyset pagination; timestamps treated as fixed UTC+1 and converted to
+  UTC; the original string is kept so the conversion can be redone.
+- **Sources and sinks behind traits** (`Source`, `Sink` in `aq-core`). The HTTP layer is
+  a further small trait, so retry, pagination and parsing are tested without network.
+- **Blocking HTTP (`ureq`) instead of an async stack.** The ingestor makes a handful of
+  sequential requests: an async runtime would add dependencies without any benefit.
+- **`arrow` + `parquet` crates instead of Polars or a table format.** Only typed columnar
+  write/read is needed; Delta/Iceberg would be oversized at this volume.
+- **Fail loudly on unexpected formats.** A row with an unparsable date, value or station
+  code aborts the run instead of being skipped.
+
 ## Planned marts
 
 | Mart | Question |
@@ -89,7 +150,7 @@ Legal limits (Italian D.Lgs. 155/2010) will live in a dbt seed, never hardcoded.
 ## Roadmap
 
 - [x] **0. Exploration** — one year of Bologna data, schema and quality issues documented
-- [ ] **1. Minimal Rust ingestor** — ARPAE → partitioned Parquet, idempotent, tested
+- [x] **1. Minimal Rust ingestor** — ARPAE → partitioned Parquet, idempotent, tested
 - [ ] **2. dbt on DuckDB** — staging + `mart_exceedances_yearly` with tests
 - [ ] **3. Orchestration** — Dagster daily schedule and backfills
 - [ ] **4. Second source** — Open-Meteo + `mart_weather_correlation`
@@ -103,14 +164,29 @@ A phase is done when it works end-to-end, has tests, and this README is updated.
 ## Repository layout (current)
 
 ```
-data/samples/arpae/   raw samples downloaded in phase 0 (used as test fixtures later)
+data/samples/arpae/   raw samples downloaded in phase 0 (source of the test fixtures)
 docs/                 data exploration report, ADRs
+ingestor/             Rust workspace
+  config/             default configuration
+  crates/core/        domain models, Source/Sink traits, errors
+  crates/source-arpae/  ARPAE client, parsing, retry
+  crates/sink-parquet/  partitioned Parquet writer with upsert
+  crates/cli/         aq-ingest binary
 scratch/              throwaway exploration scripts
+Makefile              ingest / test / lint
 ```
 
 ## Known limitations
 
-- The historical archive is hosted on Google Drive, without a stable API: the file list is read from an HTML page.
+- **No historical backfill yet.** Only the near-real-time datastore (last ~7 weeks) is ingested. The
+  historical archive is hosted on Google Drive without a stable API (the file list is an HTML page);
+  a window older than the datastore retention simply returns no rows.
+- **The source can be stale.** On 2026-10-01 the newest measurement in the datastore was dated
+  2026-09-17. The ingestor does not alert on freshness yet.
+- Rows deleted upstream are not removed from the raw layer (upsert only), and previous values of
+  revised rows are not kept.
+- Single writer: two concurrent runs on the same partition would race.
+- The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
 - No source covers early 2026 at the moment: it is not yet in the historical archive and is already outside the near-real-time window.
 - The meaning of `v_flag` and the timezone of the timestamps are inferred, not documented by ARPAE.
 
