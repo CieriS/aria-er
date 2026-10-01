@@ -1,0 +1,17 @@
+[package]
+name = "aq-sink-parquet"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+aq-core.workspace = true
+arrow-array = "60"
+arrow-schema = "60"
+chrono.workspace = true
+parquet = { version = "60", default-features = false, features = ["arrow", "snap"] }
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
