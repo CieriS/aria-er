@@ -1,0 +1,9 @@
+[project]
+name = "aria-er-transform"
+version = "0.1.0"
+description = "dbt models for the aria-er air quality platform"
+requires-python = ">=3.12,<3.13"
+dependencies = ["dbt-duckdb>=1.9"]
+
+[tool.uv]
+package = false

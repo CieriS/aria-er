@@ -1,3 +1,9 @@
 .DS_Store
 ingestor/target/
 raw/
+warehouse/
+transform/target/
+transform/logs/
+transform/.venv/
+transform/dbt_packages/
+transform/.user.yml

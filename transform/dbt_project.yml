@@ -1,0 +1,43 @@
+name: aria_er
+version: "0.1.0"
+profile: aria_er
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+vars:
+  # Raw layer written by the ingestor, relative to this directory.
+  raw_dir: "../raw"
+  # Validated yearly CSVs from the ARPAE archive (not yet loaded by the ingestor).
+  historical_dir: "../data/samples/arpae"
+  # Offset of ARPAE local standard time from UTC; legal days are counted in this time.
+  local_utc_offset_hours: 1
+  # Must cover the ingestor reprocessing window (run.reprocess_window_days).
+  lookback_days: 30
+  # Minimum share of valid data for an aggregate to be considered valid.
+  min_coverage: 0.75
+
+models:
+  aria_er:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: table
+
+seeds:
+  aria_er:
+    air_quality_limits:
+      +column_types:
+        pollutant_id: integer
+        limit_ugm3: double
+        max_exceedances_per_year: integer
+    arpae_pollutants:
+      +column_types:
+        pollutant_id: integer
+        averaging_minutes: integer
+        max_plausible_ugm3: double
