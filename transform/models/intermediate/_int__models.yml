@@ -1,0 +1,146 @@
+version: 2
+
+models:
+  - name: int_stations_current
+    description: Current attributes of each station, from the open rows of the registry snapshot.
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [unique, not_null]
+      - name: station_name
+        description: Station name.
+      - name: municipality
+        description: Municipality of the station.
+      - name: province
+        description: Province code.
+      - name: address
+        description: Street address.
+      - name: altitude_m
+        description: Altitude in metres.
+      - name: longitude
+        description: Longitude (WGS84).
+      - name: latitude
+        description: Latitude (WGS84).
+
+  - name: int_measurements_deduplicated
+    description: >
+      One row per station, pollutant and reference time across the near-real-time feed and
+      the validated archive (the archive wins). Incremental, reprocessing the same lookback
+      window as the ingestor. Adds the averaging period, the legal day and quality flags;
+      suspicious values are flagged, not removed.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, pollutant_id, measured_at_utc]
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: pollutant_code
+        description: Short code of the pollutant.
+        data_tests: [not_null]
+      - name: averaging_minutes
+        description: Averaging period of the value (60 or 1440).
+        data_tests: [not_null]
+      - name: measured_at_utc
+        description: Reference time in UTC.
+        data_tests: [not_null]
+      - name: period_start_utc
+        description: Start of the averaging period in UTC.
+      - name: measurement_date
+        description: Calendar day of the period in ARPAE local standard time (UTC+1).
+        data_tests: [not_null]
+      - name: concentration_ugm3
+        description: Value in µg/m³; null when the unit is not a mass concentration.
+      - name: value_original
+        description: Value as published.
+      - name: unit_original
+        description: Unit as published.
+      - name: validation_flag
+        description: Near-real-time validation flag (M / G); null for archive rows.
+      - name: source_name
+        description: Origin of the row.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [near_real_time, historical]
+      - name: is_negative
+        description: The concentration is below zero.
+      - name: is_zero
+        description: The concentration is exactly zero (possibly below the detection limit).
+      - name: is_implausible
+        description: The concentration is above the plausibility bound of the pollutant.
+      - name: is_valid
+        description: Usable in aggregates (has a concentration, not negative, not implausible).
+        data_tests: [not_null]
+
+  - name: int_measurements_daily
+    description: >
+      Daily statistics per station and pollutant over valid measurements, with the
+      coverage of the day. A day is valid with at least 75% of the expected values.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, pollutant_id, measurement_date]
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: pollutant_code
+        description: Short code of the pollutant.
+      - name: averaging_minutes
+        description: Averaging period of the underlying values.
+      - name: measurement_date
+        description: Calendar day in ARPAE local standard time.
+        data_tests: [not_null]
+      - name: daily_mean_ugm3
+        description: Mean of the valid values of the day, in µg/m³.
+      - name: daily_max_ugm3
+        description: Highest valid value of the day, in µg/m³.
+      - name: measurements
+        description: Values published for the day.
+      - name: valid_measurements
+        description: Values of the day usable in aggregates.
+      - name: expected_measurements
+        description: Values a complete day has (24 hourly or 1 daily).
+      - name: coverage
+        description: Share of expected values that are valid.
+      - name: is_valid_day
+        description: Coverage reaches the minimum required.
+        data_tests: [not_null]
+
+  - name: int_o3_8h_rolling
+    description: >
+      Rolling 8-hour mean for pollutants with an 8-hour limit (ozone), one row per
+      station and hour ending the window. A window is valid with at least 6 valid hours.
+      Windows ending on a missing hour are not produced.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, pollutant_id, measured_at_utc]
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: pollutant_code
+        description: Short code of the pollutant.
+      - name: measured_at_utc
+        description: End of the 8-hour window, in UTC.
+        data_tests: [not_null]
+      - name: measurement_date
+        description: Day the window belongs to (the day in which it ends), local standard time.
+      - name: rolling_8h_mean_ugm3
+        description: Mean of the valid hourly values in the window, in µg/m³.
+      - name: valid_hours_in_window
+        description: Valid hourly values in the window (at most 8).
+      - name: is_valid_window
+        description: The window has at least 75% of its hours.
