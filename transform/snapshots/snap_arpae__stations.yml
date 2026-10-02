@@ -1,0 +1,35 @@
+version: 2
+
+snapshots:
+  - name: snap_arpae__stations
+    description: >
+      Type 2 history of the station registry (one row per station, pollutant and validity
+      period). A change in any attribute closes the current row and opens a new one;
+      rows that disappear from the registry are closed.
+    relation: ref('stg_arpae__stations')
+    config:
+      unique_key: [station_id, pollutant_id]
+      strategy: check
+      check_cols:
+        - station_name
+        - municipality
+        - province
+        - address
+        - altitude_m
+        - longitude
+        - latitude
+        - pollutant_name
+        - unit_original
+      hard_deletes: invalidate
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: dbt_valid_from
+        description: Start of validity of this version.
+        data_tests: [not_null]
+      - name: dbt_valid_to
+        description: End of validity; null for the current version.

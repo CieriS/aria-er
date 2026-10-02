@@ -1,0 +1,27 @@
+version: 2
+
+sources:
+  - name: arpae_raw
+    description: Raw layer written by the Rust ingestor (near-real-time ARPAE datastore).
+    tables:
+      - name: measurements
+        description: One row per station, pollutant and reference time. Upserted by natural key.
+        config:
+          external_location: "read_parquet('{{ var('raw_dir') }}/arpae/measurements/*/*/*.parquet')"
+          loaded_at_field: measured_at
+          freshness:
+            warn_after: {count: 48, period: hour}
+      - name: stations
+        description: Station registry snapshots, one directory per extraction date.
+        config:
+          external_location: "read_parquet('{{ var('raw_dir') }}/arpae/stations/*/*.parquet')"
+
+  - name: arpae_historical
+    description: >
+      Validated yearly CSV files from the ARPAE archive (one file per year, station and
+      pollutant). Read directly until the ingestor supports the historical backfill.
+    tables:
+      - name: measurements
+        description: One row per station, pollutant and averaging interval.
+        config:
+          external_location: "read_csv('{{ var('historical_dir') }}/storico_*/*.csv', header = true, all_varchar = true)"

@@ -1,0 +1,106 @@
+version: 2
+
+models:
+  - name: stg_arpae__measurements
+    description: >
+      Near-real-time ARPAE measurements: typed, with the timestamp as a UTC timestamp and
+      the concentration normalised to µg/m³. The published value and unit are kept.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, pollutant_id, measured_at_utc]
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('arpae_pollutants')
+                field: pollutant_id
+      - name: measured_at_utc
+        description: Reference time in UTC (end of the hour for hourly values, the day for daily ones).
+        data_tests: [not_null]
+      - name: concentration_ugm3
+        description: Value in µg/m³; null when the unit is not a mass concentration.
+      - name: value_original
+        description: Value as published.
+        data_tests: [not_null]
+      - name: unit_original
+        description: Unit as published.
+      - name: validation_flag
+        description: Source validation flag, verbatim (M / G).
+      - name: raw_reftime
+        description: Reference time exactly as published.
+
+  - name: stg_arpae__measurements_historical
+    description: >
+      Validated measurements from the yearly archive files, aligned to the same key and
+      reference-time convention as stg_arpae__measurements.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, pollutant_id, measured_at_utc]
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('arpae_pollutants')
+                field: pollutant_id
+      - name: measured_at_utc
+        description: Reference time in UTC (end of the hour for hourly values, the day for daily ones).
+        data_tests: [not_null]
+      - name: concentration_ugm3
+        description: Value in µg/m³; null when the unit is not a mass concentration.
+      - name: value_original
+        description: Value as published.
+        data_tests: [not_null]
+      - name: unit_original
+        description: Unit as published.
+
+  - name: stg_arpae__stations
+    description: >
+      Latest extraction of the station registry: one row per station and pollutant
+      measured there.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, pollutant_id]
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: station_name
+        description: Station name.
+        data_tests: [not_null]
+      - name: municipality
+        description: Municipality of the station.
+      - name: province
+        description: Province code.
+      - name: address
+        description: Street address.
+      - name: altitude_m
+        description: Altitude in metres.
+      - name: longitude
+        description: Longitude (WGS84).
+      - name: latitude
+        description: Latitude (WGS84).
+      - name: pollutant_name
+        description: Pollutant name as in the registry.
+      - name: unit_original
+        description: Unit of the pollutant as published.
+      - name: extracted_on
+        description: Date the registry was downloaded.
+        data_tests: [not_null]
