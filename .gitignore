@@ -7,3 +7,9 @@ transform/logs/
 transform/.venv/
 transform/dbt_packages/
 transform/.user.yml
+orchestration/.venv/
+orchestration/.dagster_home/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
