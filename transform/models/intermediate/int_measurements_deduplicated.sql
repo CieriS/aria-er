@@ -41,8 +41,18 @@ in_scope as (
     select * from unioned
     {% if is_incremental() %}
     -- Reprocess the same window the ingestor rewrites, to pick up revised values.
+    -- A backfill passes `reprocess_from` to reach further back than the lookback.
     where measured_at_utc >= (
-        select max(measured_at_utc) - interval ({{ var('lookback_days') }}) day from {{ this }}
+        select
+            {% if var('reprocess_from', none) %}
+            least(
+                max(measured_at_utc) - interval ({{ var('lookback_days') }}) day,
+                cast('{{ var('reprocess_from') }}' as timestamp) - interval 1 day
+            )
+            {% else %}
+            max(measured_at_utc) - interval ({{ var('lookback_days') }}) day
+            {% endif %}
+        from {{ this }}
     )
     {% endif %}
 
