@@ -28,17 +28,19 @@ historized and tested dataset that answers questions like:
 
 ## Status
 
-🚧 Work in progress — phases 0 (data exploration) and 1 (Rust ingestor) are complete.
+🚧 Work in progress — phases 0 (data exploration), 1 (Rust ingestor) and 2 (dbt models on
+DuckDB) are complete.
 See the roadmap below.
 
 ## How to run
 
-Requirements: a stable Rust toolchain (edition 2021) and `make`.
+Requirements: a stable Rust toolchain (edition 2021), [uv](https://docs.astral.sh/uv/) and `make`.
 
 ```bash
 make ingest                                   # last 30 days (reprocessing window)
 make ingest FROM=2026-08-01 TO=2026-08-31     # explicit window, inclusive
-make test                                     # unit and integration tests (no network)
+make transform                                # dbt build (seeds, snapshot, models, tests) + source freshness
+make test                                     # Rust tests (no network) + dbt build with its data tests
 make lint                                     # cargo fmt --check + clippy -D warnings
 ```
 
@@ -116,6 +118,85 @@ Phase 0 analysed one year (2025) of data for the Bologna stations. Each issue ma
 | **Many exact zeros** (e.g. 242 hourly NO values at one station) | Likely below the detection limit or rounding. Keep the values and add a quality flag rather than dropping them silently, so the analyses can decide how to treat them. |
 | **Timezone not declared**: timestamps do not follow daylight saving (24 hours on DST days) | Treated as fixed-offset local standard time (UTC+1) pending confirmation from ARPAE. Converted to UTC in storage. Europe/Rome is used only for presentation. |
 
+## Transformations (dbt on DuckDB)
+
+`make transform` builds the warehouse in `warehouse/aria_er.duckdb` from the Parquet files
+in `raw/` and the archive samples in `data/samples/`. It needs `make ingest` to have run at
+least once.
+
+| Layer | Model | Content |
+|---|---|---|
+| staging | `stg_arpae__measurements` | Near-real-time rows: typed, UTC timestamp, value in µg/m³ |
+| staging | `stg_arpae__measurements_historical` | Validated archive CSVs aligned to the same key |
+| staging | `stg_arpae__stations` | Latest extraction of the station registry |
+| snapshot | `snap_arpae__stations` | Type 2 history of the registry |
+| intermediate | `int_measurements_deduplicated` | Incremental fact, one row per natural key, with quality flags |
+| intermediate | `int_measurements_daily` | Daily mean, maximum and coverage |
+| intermediate | `int_o3_8h_rolling` | Rolling 8-hour ozone mean |
+| intermediate | `int_stations_current` | Current attributes of each station |
+| mart | `mart_exceedances_yearly` | Exceedances of each legal limit per station and year |
+| mart | `mart_data_completeness` | Coverage per station, pollutant and day, including empty days |
+
+Seeds: `air_quality_limits` (legal thresholds) and `arpae_pollutants` (averaging period and
+plausibility bound per pollutant).
+
+Rules applied:
+
+- **Legal day.** Days and years are counted in ARPAE local standard time (UTC+1 all year).
+  An hourly value stamped at the end of its hour belongs to the day the hour starts in.
+- **Minimum coverage 75%.** A daily mean needs 18 of 24 hours, an 8-hour mean 6 of 8 hours,
+  a daily 8-hour maximum 18 of 24 windows. Below that the period is not counted.
+- **Exceedance** means strictly greater than the limit.
+- **Flag, don't drop.** Negative, zero and implausible values stay in the fact table with
+  `is_negative`, `is_zero`, `is_implausible`; only `is_valid` rows enter the aggregates.
+  Two tests with `warn` severity surface them without failing the build.
+- **Incremental lookback of 30 days**, the same window the ingestor reprocesses.
+- **Freshness**: `dbt source freshness` warns when the newest measurement is older than 48 hours.
+
+### Check against the ARPAE annual report (Bologna, 2025)
+
+`mart_exceedances_yearly` compared with ARPAE's
+[report on the 2025 data of the Bologna network](https://www.arpae.it/it/il-territorio/bologna/report-a-bo/aria/report-annuali-aria-bo):
+
+| Indicator (2025) | Station | aria-er | ARPAE report |
+|---|---|---|---|
+| PM10 days above 50 µg/m³ | Porta San Felice | 20 | 20 |
+| PM10 days above 50 µg/m³ | Giardini Margherita | 10 | 10 |
+| PM10 days above 50 µg/m³ | Via Chiarini | 7 | 7 |
+| O3 days with 8-hour maximum above 120 µg/m³ | Giardini Margherita | 27 | 27 |
+| O3 days with 8-hour maximum above 120 µg/m³ | Via Chiarini | 54 | 54 |
+| NO2 hours above 200 µg/m³ | all three | 0 | 0 |
+
+The same data also reproduce figures the marts do not expose yet: NO2 annual means
+(31 / 14 / 16 µg/m³), PM10 annual means (24 / 21 / 17 µg/m³) and ozone hours above
+180 µg/m³ (2 at Giardini Margherita, 22 at Via Chiarini).
+
+Notes on the comparison:
+
+- PM10 figures are those of the report's ten-year table. Its monthly table for 2025 lists
+  7 for Giardini Margherita and 10 for Chiarini, the opposite of its own ten-year table;
+  the data agree with the ten-year table.
+- The report states that its times are in standard time, which supports the UTC+1 assumption.
+- For ozone the law caps the *three-year average* of exceedance days at 25. The mart
+  compares each single year with 25, so `is_over_allowed_exceedances` is an approximation
+  for ozone until three full years are loaded.
+- 2026 rows cover August only (`year_coverage` ≈ 0.08): their counts are partial.
+
+### Legal limits to verify
+
+The thresholds in `transform/seeds/air_quality_limits.csv` are consistent with the
+values quoted in the ARPAE report, but have not been checked line by line against the text of
+D.Lgs. 155/2010 in force:
+
+| Pollutant | Metric | Limit | Allowed per year |
+|---|---|---|---|
+| PM10 | daily mean | 50 µg/m³ | 35 days |
+| NO2 | hourly mean | 200 µg/m³ | 18 hours |
+| O3 | daily maximum of the 8-hour rolling mean | 120 µg/m³ | 25 days, as a 3-year average (target value, not a limit value) |
+
+Annual-mean limits (PM10 and NO2 40 µg/m³, PM2.5 25 µg/m³) are not in the seed because no
+mart uses them yet. Directive (EU) 2024/2881 sets stricter values from 2030.
+
 ## Design decisions (phase 1)
 
 - **Upsert by rewriting partitions** ([ADR 0001](docs/adr/0001-parquet-upsert-by-partition-rewrite.md)).
@@ -135,6 +216,22 @@ Phase 0 analysed one year (2025) of data for the Bologna stations. Each issue ma
 - **Fail loudly on unexpected formats.** A row with an unparsable date, value or station
   code aborts the run instead of being skipped.
 
+## Design decisions (phase 2)
+
+- **Archive read by dbt for now** ([ADR 0003](docs/adr/0003-historical-archive-read-by-dbt.md)).
+  Yearly counts need a full year, which only the validated archive has. Until the ingestor
+  can backfill it, a staging model reads the sample CSVs directly; the archive wins over
+  the near-real-time feed for the same key.
+- **One incremental fact, `delete+insert` on the natural key.** Aggregates on top are
+  plain tables: at this volume a full rebuild takes under a second, and incremental
+  aggregates would have to handle late revisions.
+- **No dbt packages.** The only helper needed, a multi-column uniqueness test, is a
+  five-line generic test in the project.
+- **Limits and pollutant metadata as seeds.** No threshold, pollutant id or averaging
+  period is written in a model; the ozone model selects its pollutant from the seed.
+- **Completeness against an expected grid.** Missing hours are absent rows, so coverage
+  is computed against every day between the first and last observation of a series.
+
 ## Planned marts
 
 | Mart | Question |
@@ -151,7 +248,7 @@ Legal limits (Italian D.Lgs. 155/2010) will live in a dbt seed, never hardcoded.
 
 - [x] **0. Exploration** — one year of Bologna data, schema and quality issues documented
 - [x] **1. Minimal Rust ingestor** — ARPAE → partitioned Parquet, idempotent, tested
-- [ ] **2. dbt on DuckDB** — staging + `mart_exceedances_yearly` with tests
+- [x] **2. dbt on DuckDB** — staging + `mart_exceedances_yearly` with tests
 - [ ] **3. Orchestration** — Dagster daily schedule and backfills
 - [ ] **4. Second source** — Open-Meteo + `mart_weather_correlation`
 - [ ] **5. Dashboard** — Streamlit
@@ -172,8 +269,9 @@ ingestor/             Rust workspace
   crates/source-arpae/  ARPAE client, parsing, retry
   crates/sink-parquet/  partitioned Parquet writer with upsert
   crates/cli/         aq-ingest binary
+transform/            dbt project (DuckDB): staging, intermediate, marts, seeds, snapshot, tests
 scratch/              throwaway exploration scripts
-Makefile              ingest / test / lint
+Makefile              ingest / transform / test / lint
 ```
 
 ## Known limitations
@@ -185,6 +283,13 @@ Makefile              ingest / test / lint
   2026-09-17. The ingestor does not alert on freshness yet.
 - Rows deleted upstream are not removed from the raw layer (upsert only), and previous values of
   revised rows are not kept.
+- **2025 covers three Bologna stations only**, read from the sample CSVs; 2026 covers August only.
+  January–July 2026 is missing from every source and shows as empty days in `mart_data_completeness`.
+- Archive files older than the 30-day lookback need `dbt build --full-refresh` to be loaded.
+- An 8-hour window ending on a missing hour is not produced; days with many gaps may lack a few windows.
+- The station registry has no station type (traffic / background) and the snapshot has a single
+  extraction so far, so no history yet.
+- dbt tests run against local data, not fixtures; `make test` therefore needs `raw/`.
 - Single writer: two concurrent runs on the same partition would race.
 - The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
 - No source covers early 2026 at the moment: it is not yet in the historical archive and is already outside the near-real-time window.
