@@ -1,0 +1,55 @@
+version: 2
+
+seeds:
+  - name: air_quality_limits
+    description: >
+      Air quality limit and target values from D.Lgs. 155/2010 used to count exceedances.
+      One row per pollutant and metric. Values must be checked against the law in force.
+    columns:
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: metric
+        description: Statistic the limit applies to (daily_mean, hourly_mean, daily_max_8h_mean).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [daily_mean, hourly_mean, daily_max_8h_mean]
+      - name: limit_ugm3
+        description: Threshold in µg/m³; a period exceeds when its value is strictly greater.
+        data_tests: [not_null]
+      - name: max_exceedances_per_year
+        description: Exceedances allowed per calendar year.
+        data_tests: [not_null]
+      - name: limit_type
+        description: Legal nature of the threshold (limit value or target value).
+      - name: legal_reference
+        description: Annex of the decree defining the threshold.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [pollutant_id, metric]
+
+  - name: arpae_pollutants
+    description: >
+      Pollutant reference from the ARPAE parameter registry, with the averaging period of
+      the published values and a generous upper bound used to flag impossible values.
+    columns:
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [unique, not_null]
+      - name: pollutant_code
+        description: Short code of the pollutant.
+        data_tests: [not_null]
+      - name: pollutant_name
+        description: Italian name as in the registry.
+      - name: averaging_minutes
+        description: Averaging period of each published value (60 hourly, 1440 daily).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [60, 1440]
+      - name: max_plausible_ugm3
+        description: Values above this are flagged as implausible. Empty means no check.

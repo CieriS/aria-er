@@ -1,0 +1,4 @@
+pollutant_id,pollutant_code,metric,limit_ugm3,max_exceedances_per_year,limit_type,legal_reference
+5,PM10,daily_mean,50,35,limit value,D.Lgs. 155/2010 All. XI
+8,NO2,hourly_mean,200,18,limit value,D.Lgs. 155/2010 All. XI
+7,O3,daily_max_8h_mean,120,25,target value (averaged over 3 years),D.Lgs. 155/2010 All. VII
