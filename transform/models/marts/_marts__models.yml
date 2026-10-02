@@ -1,0 +1,82 @@
+version: 2
+
+models:
+  - name: mart_exceedances_yearly
+    description: >
+      How many times each station exceeded each legal limit, per calendar year. One row
+      per station, pollutant, metric and year. Thresholds come from the air_quality_limits
+      seed. Read exceedances together with year_coverage: a partial year undercounts.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, pollutant_id, metric, year]
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: station_name
+        description: Current station name.
+      - name: municipality
+        description: Municipality of the station.
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: pollutant_code
+        description: Short code of the pollutant.
+      - name: metric
+        description: Statistic the limit applies to.
+        data_tests: [not_null]
+      - name: year
+        description: Calendar year in ARPAE local standard time.
+        data_tests: [not_null]
+      - name: exceedances
+        description: Valid periods (days or hours) with a value strictly above the limit.
+        data_tests: [not_null]
+      - name: limit_ugm3
+        description: Threshold applied, in µg/m³.
+      - name: max_exceedances_per_year
+        description: Exceedances allowed by law in a year.
+      - name: is_over_allowed_exceedances
+        description: The station exceeded the limit more often than allowed.
+      - name: max_value_ugm3
+        description: Highest value of the metric in the year.
+      - name: valid_periods
+        description: Valid periods the count is based on.
+      - name: year_coverage
+        description: Valid periods over the periods of a full year.
+
+  - name: mart_data_completeness
+    description: >
+      Data coverage audit: one row per station, pollutant and day between the first and
+      last observation of the series, including days with no data at all.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, pollutant_id, measurement_date]
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: station_name
+        description: Current station name.
+      - name: municipality
+        description: Municipality of the station.
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: pollutant_code
+        description: Short code of the pollutant.
+      - name: measurement_date
+        description: Calendar day in ARPAE local standard time.
+        data_tests: [not_null]
+      - name: expected_measurements
+        description: Values a complete day has.
+      - name: measurements
+        description: Values published for the day (0 when the day is missing).
+      - name: valid_measurements
+        description: Values usable in aggregates.
+      - name: completeness
+        description: Valid values over expected values.
+        data_tests: [not_null]
+      - name: is_complete
+        description: Completeness reaches the minimum required.
