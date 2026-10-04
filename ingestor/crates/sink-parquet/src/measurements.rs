@@ -1,21 +1,16 @@
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
-use aq_core::{Measurement, MeasurementKey, SinkError, WriteReport};
+use aq_core::{Measurement, MeasurementKey, SinkError};
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Float64Type, TimestampMicrosecondType, UInt32Type};
 use arrow_array::{
     Array, ArrayRef, Float64Array, RecordBatch, StringArray, TimestampMicrosecondArray, UInt32Array,
 };
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
-use chrono::{DateTime, Datelike};
-use tracing::{debug, info};
+use chrono::{DateTime, Utc};
 
-use crate::{parquet_error, read_batches, schema_error, write_atomically, MEASUREMENTS_FILE};
-
-type Partition = (i32, u32);
-type Rows = BTreeMap<MeasurementKey, Measurement>;
+use crate::{schema_error, PartitionedRecord};
 
 fn schema() -> Arc<Schema> {
     Arc::new(Schema::new(vec![
@@ -33,95 +28,50 @@ fn schema() -> Arc<Schema> {
     ]))
 }
 
-fn partition_path(root: &Path, (year, month): Partition) -> PathBuf {
-    root.join(format!("year={year:04}"))
-        .join(format!("month={month:02}"))
-        .join(MEASUREMENTS_FILE)
-}
+impl PartitionedRecord for Measurement {
+    type Key = MeasurementKey;
 
-pub(crate) fn upsert(root: &Path, measurements: &[Measurement]) -> Result<WriteReport, SinkError> {
-    let mut incoming: BTreeMap<Partition, Vec<&Measurement>> = BTreeMap::new();
-    for measurement in measurements {
-        let at = measurement.measured_at;
-        incoming
-            .entry((at.year(), at.month()))
-            .or_default()
-            .push(measurement);
+    fn key(&self) -> MeasurementKey {
+        Measurement::key(self)
     }
 
-    let mut report = WriteReport::default();
-    for (partition, new_rows) in incoming {
-        let path = partition_path(root, partition);
-        let mut rows = if path.exists() {
-            read_partition(&path)?
-        } else {
-            Rows::new()
-        };
-
-        let (mut inserted, mut updated) = (0, 0);
-        for row in new_rows {
-            match rows.insert(row.key(), row.clone()) {
-                None => inserted += 1,
-                Some(previous) if previous != *row => updated += 1,
-                Some(_) => {}
-            }
-        }
-
-        report.rows_stored += rows.len();
-        report.rows_inserted += inserted;
-        report.rows_updated += updated;
-        if inserted == 0 && updated == 0 {
-            debug!(path = %path.display(), "partition unchanged, not rewritten");
-            continue;
-        }
-
-        write_atomically(&path, schema(), &to_batch(&path, &rows)?)?;
-        report.partitions_written += 1;
-        info!(
-            path = %path.display(),
-            rows = rows.len(),
-            inserted,
-            updated,
-            "wrote measurements partition"
-        );
+    fn timestamp(&self) -> DateTime<Utc> {
+        self.measured_at
     }
-    Ok(report)
-}
 
-/// Rows are emitted in key order, which makes the file content deterministic.
-fn to_batch(path: &Path, rows: &Rows) -> Result<RecordBatch, SinkError> {
-    let columns: Vec<ArrayRef> = vec![
-        Arc::new(UInt32Array::from_iter_values(
-            rows.values().map(|m| m.station_id),
-        )),
-        Arc::new(UInt32Array::from_iter_values(
-            rows.values().map(|m| m.pollutant_id),
-        )),
-        Arc::new(
-            TimestampMicrosecondArray::from_iter_values(
-                rows.values().map(|m| m.measured_at.timestamp_micros()),
-            )
-            .with_timezone("UTC"),
-        ),
-        Arc::new(Float64Array::from_iter_values(
-            rows.values().map(|m| m.value),
-        )),
-        Arc::new(StringArray::from_iter(
-            rows.values().map(|m| m.unit.as_deref()),
-        )),
-        Arc::new(StringArray::from_iter_values(
-            rows.values().map(|m| m.validation_flag.as_str()),
-        )),
-        Arc::new(StringArray::from_iter_values(
-            rows.values().map(|m| m.raw_reftime.as_str()),
-        )),
-    ];
-    RecordBatch::try_new(schema(), columns).map_err(|e| parquet_error(path, e))
-}
+    fn schema() -> Arc<Schema> {
+        schema()
+    }
 
-fn read_partition(path: &Path) -> Result<Rows, SinkError> {
-    let mut rows = Rows::new();
-    for batch in read_batches(path)? {
+    fn to_columns(rows: &[&Self]) -> Vec<ArrayRef> {
+        vec![
+            Arc::new(UInt32Array::from_iter_values(
+                rows.iter().map(|m| m.station_id),
+            )),
+            Arc::new(UInt32Array::from_iter_values(
+                rows.iter().map(|m| m.pollutant_id),
+            )),
+            Arc::new(
+                TimestampMicrosecondArray::from_iter_values(
+                    rows.iter().map(|m| m.measured_at.timestamp_micros()),
+                )
+                .with_timezone("UTC"),
+            ),
+            Arc::new(Float64Array::from_iter_values(rows.iter().map(|m| m.value))),
+            Arc::new(StringArray::from_iter(
+                rows.iter().map(|m| m.unit.as_deref()),
+            )),
+            Arc::new(StringArray::from_iter_values(
+                rows.iter().map(|m| m.validation_flag.as_str()),
+            )),
+            Arc::new(StringArray::from_iter_values(
+                rows.iter().map(|m| m.raw_reftime.as_str()),
+            )),
+        ]
+    }
+
+    fn from_batch(batch: &RecordBatch, path: &Path) -> Result<Vec<Self>, SinkError> {
+        let mut rows = Vec::with_capacity(batch.num_rows());
         let column = |name: &str| {
             batch
                 .column_by_name(name)
@@ -162,8 +112,8 @@ fn read_partition(path: &Path) -> Result<Rows, SinkError> {
                 validation_flag: validation_flag.value(i).to_owned(),
                 raw_reftime: raw_reftime.value(i).to_owned(),
             };
-            rows.insert(measurement.key(), measurement);
+            rows.push(measurement);
         }
+        Ok(rows)
     }
-    Ok(rows)
 }

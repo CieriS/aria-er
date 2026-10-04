@@ -15,15 +15,3 @@ pub struct ArpaeConfig {
     /// Rows requested per datastore query.
     pub page_size: u32,
 }
-
-/// HTTP timeouts and retry policy.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct HttpConfig {
-    pub connect_timeout_secs: u64,
-    pub timeout_secs: u64,
-    /// Total attempts per request, including the first one.
-    pub max_attempts: u32,
-    /// Delay before the first retry; doubles on every further retry.
-    pub initial_backoff_ms: u64,
-}

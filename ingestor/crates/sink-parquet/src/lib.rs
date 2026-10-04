@@ -1,57 +1,34 @@
-//! Parquet sink for the raw layer.
+//! Parquet sinks for the raw layer.
 //!
-//! Measurements are partitioned by UTC `year=YYYY/month=MM`, one file per
+//! Time series are partitioned by UTC `year=YYYY/month=MM`, one file per
 //! partition. An upsert reads the partitions it touches, merges by natural
 //! key, and rewrites them sorted, so that the same input always produces the
 //! same bytes (see `docs/adr/0001-parquet-upsert-by-partition-rewrite.md`).
 
 mod measurements;
+mod partitioned;
 mod stations;
+mod weather;
 
 use std::fs::{self, File};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
-use aq_core::{Measurement, Sink, SinkError, StationSensor, WriteReport};
+use aq_core::{Measurement, SinkError, WeatherObservation};
 use arrow_array::RecordBatch;
 use arrow_schema::Schema;
-use chrono::NaiveDate;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use parquet::arrow::ArrowWriter;
 use parquet::basic::Compression;
 use parquet::file::properties::WriterProperties;
 
-const MEASUREMENTS_FILE: &str = "part-0.parquet";
-const STATIONS_FILE: &str = "stations.parquet";
+pub use partitioned::{PartitionedRecord, PartitionedSink};
+pub use stations::StationSnapshotSink;
 
-/// Writes the raw layer as Parquet files on the local filesystem.
-pub struct ParquetSink {
-    measurements_dir: PathBuf,
-    stations_dir: PathBuf,
-}
-
-impl ParquetSink {
-    pub fn new(measurements_dir: impl Into<PathBuf>, stations_dir: impl Into<PathBuf>) -> Self {
-        Self {
-            measurements_dir: measurements_dir.into(),
-            stations_dir: stations_dir.into(),
-        }
-    }
-}
-
-impl Sink for ParquetSink {
-    fn write_measurements(&self, measurements: &[Measurement]) -> Result<WriteReport, SinkError> {
-        measurements::upsert(&self.measurements_dir, measurements)
-    }
-
-    fn write_stations(
-        &self,
-        extracted_on: NaiveDate,
-        sensors: &[StationSensor],
-    ) -> Result<usize, SinkError> {
-        stations::write_snapshot(&self.stations_dir, extracted_on, sensors)
-    }
-}
+/// Sink for ARPAE measurements.
+pub type MeasurementSink = PartitionedSink<Measurement>;
+/// Sink for hourly weather observations.
+pub type WeatherSink = PartitionedSink<WeatherObservation>;
 
 fn io_error(path: &Path, source: std::io::Error) -> SinkError {
     SinkError::Io {

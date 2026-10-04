@@ -6,8 +6,6 @@
 mod config;
 pub mod parse;
 mod source;
-mod transport;
 
-pub use config::{ArpaeConfig, HttpConfig};
-pub use source::ArpaeSource;
-pub use transport::{Transport, TransportError, UreqTransport};
+pub use config::ArpaeConfig;
+pub use source::{ArpaeSource, ArpaeStations};

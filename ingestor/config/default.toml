@@ -12,6 +12,14 @@ pollutants_csv_url = "https://docs.google.com/spreadsheets/d/1K6vRcShjje2CDnvnk3
 utc_offset_hours = 1
 page_size = 32000
 
+[openmeteo]
+archive_url = "https://archive-api.open-meteo.com/v1/archive"
+# Station coordinates rounded to this many decimals share one weather location
+# (1 decimal is ~11 km, the order of the archive grid). Must match the dbt
+# variable `weather_coordinate_decimals`.
+coordinate_decimals = 1
+max_locations_per_request = 10
+
 [http]
 connect_timeout_secs = 10
 # The datastore SQL endpoint routinely takes 40 s or more to answer.
@@ -22,6 +30,7 @@ initial_backoff_ms = 1000
 [sink]
 measurements_dir = "raw/arpae/measurements"
 stations_dir = "raw/arpae/stations"
+weather_dir = "raw/openmeteo/weather"
 
 [run]
 # Days reprocessed on every run, to pick up revisions of provisional data.

@@ -12,8 +12,10 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1"
 aq-core.workspace = true
+aq-http.workspace = true
 aq-sink-parquet.workspace = true
 aq-source-arpae.workspace = true
+aq-source-openmeteo.workspace = true
 chrono.workspace = true
 clap = { version = "4", features = ["derive", "env"] }
 serde.workspace = true

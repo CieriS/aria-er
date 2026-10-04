@@ -1,11 +1,24 @@
+//! HTTP transport shared by the sources: explicit timeouts and retry with backoff.
+
 use std::fmt;
 use std::thread;
 use std::time::Duration;
 
 use aq_core::SourceError;
+use serde::Deserialize;
 use tracing::warn;
 
-use crate::HttpConfig;
+/// HTTP timeouts and retry policy.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HttpConfig {
+    pub connect_timeout_secs: u64,
+    pub timeout_secs: u64,
+    /// Total attempts per request, including the first one.
+    pub max_attempts: u32,
+    /// Delay before the first retry; doubles on every further retry.
+    pub initial_backoff_ms: u64,
+}
 
 /// A failed HTTP exchange.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,7 +78,7 @@ impl Transport for UreqTransport {
 }
 
 /// GET with exponential backoff on retryable failures.
-pub(crate) fn get_with_retry<T: Transport>(
+pub fn get_with_retry<T: Transport>(
     transport: &T,
     url: &str,
     query: &[(&str, &str)],

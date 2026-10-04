@@ -93,8 +93,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "aq-core",
+ "aq-http",
  "aq-sink-parquet",
  "aq-source-arpae",
+ "aq-source-openmeteo",
  "chrono",
  "clap",
  "serde",
@@ -110,6 +112,16 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "thiserror",
+]
+
+[[package]]
+name = "aq-http"
+version = "0.1.0"
+dependencies = [
+ "aq-core",
+ "serde",
+ "tracing",
+ "ureq",
 ]
 
 [[package]]
@@ -130,12 +142,24 @@ name = "aq-source-arpae"
 version = "0.1.0"
 dependencies = [
  "aq-core",
+ "aq-http",
  "chrono",
  "csv",
  "serde",
  "serde_json",
  "tracing",
- "ureq",
+]
+
+[[package]]
+name = "aq-source-openmeteo"
+version = "0.1.0"
+dependencies = [
+ "aq-core",
+ "aq-http",
+ "chrono",
+ "serde",
+ "serde_json",
+ "tracing",
 ]
 
 [[package]]

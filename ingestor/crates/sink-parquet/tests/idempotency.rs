@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use aq_core::{Measurement, Pollutant, Sink, Station, StationSensor};
-use aq_sink_parquet::ParquetSink;
+use aq_sink_parquet::{MeasurementSink, StationSnapshotSink};
 use arrow_array::cast::AsArray;
 use arrow_array::types::Float64Type;
 use chrono::{NaiveDate, TimeZone, Utc};
@@ -21,8 +21,8 @@ fn measurement(day: u32, hour: u32, month: u32, value: f64, flag: &str) -> Measu
     }
 }
 
-fn sink(dir: &TempDir) -> ParquetSink {
-    ParquetSink::new(dir.path().join("measurements"), dir.path().join("stations"))
+fn sink(dir: &TempDir) -> MeasurementSink {
+    MeasurementSink::new(dir.path().join("measurements"))
 }
 
 fn partition(dir: &TempDir, month: u32) -> PathBuf {
@@ -54,7 +54,7 @@ fn writes_one_file_per_utc_month() {
         measurement(1, 0, 8, 6.0, "M"),
         measurement(1, 1, 8, 7.0, "M"),
     ];
-    let report = sink(&dir).write_measurements(&rows).unwrap();
+    let report = sink(&dir).write(&rows).unwrap();
 
     assert_eq!(report.partitions_written, 2);
     assert_eq!(report.rows_inserted, 3);
@@ -70,10 +70,10 @@ fn rerunning_the_same_window_is_byte_identical_and_adds_no_rows() {
         .collect();
     let sink = sink(&dir);
 
-    sink.write_measurements(&rows).unwrap();
+    sink.write(&rows).unwrap();
     let first = fs::read(partition(&dir, 8)).unwrap();
 
-    let report = sink.write_measurements(&rows).unwrap();
+    let report = sink.write(&rows).unwrap();
     assert_eq!(report.rows_stored, 24);
     assert_eq!((report.rows_inserted, report.rows_updated), (0, 0));
     assert_eq!(report.partitions_written, 0);
@@ -87,14 +87,14 @@ fn output_does_not_depend_on_input_order_or_batching() {
         .collect();
 
     let whole = TempDir::new().unwrap();
-    sink(&whole).write_measurements(&rows).unwrap();
+    sink(&whole).write(&rows).unwrap();
 
     let split = TempDir::new().unwrap();
     let mut reversed = rows.clone();
     reversed.reverse();
     let split_sink = sink(&split);
-    split_sink.write_measurements(&reversed[..10]).unwrap();
-    split_sink.write_measurements(&reversed[10..]).unwrap();
+    split_sink.write(&reversed[..10]).unwrap();
+    split_sink.write(&reversed[10..]).unwrap();
 
     assert_eq!(
         fs::read(partition(&whole, 8)).unwrap(),
@@ -106,15 +106,13 @@ fn output_does_not_depend_on_input_order_or_batching() {
 fn revised_value_replaces_the_provisional_one_and_keeps_other_rows() {
     let dir = TempDir::new().unwrap();
     let sink = sink(&dir);
-    sink.write_measurements(&[
+    sink.write(&[
         measurement(5, 0, 8, 10.0, "M"),
         measurement(5, 1, 8, 11.0, "M"),
     ])
     .unwrap();
 
-    let report = sink
-        .write_measurements(&[measurement(5, 1, 8, 12.5, "G")])
-        .unwrap();
+    let report = sink.write(&[measurement(5, 1, 8, 12.5, "G")]).unwrap();
 
     assert_eq!((report.rows_inserted, report.rows_updated), (0, 1));
     assert_eq!(report.rows_stored, 2);
@@ -125,7 +123,7 @@ fn revised_value_replaces_the_provisional_one_and_keeps_other_rows() {
 fn duplicate_keys_in_one_batch_collapse_to_the_last_row() {
     let dir = TempDir::new().unwrap();
     sink(&dir)
-        .write_measurements(&[
+        .write(&[
             measurement(5, 0, 8, 1.0, "M"),
             measurement(5, 0, 8, 2.0, "M"),
         ])
@@ -136,9 +134,7 @@ fn duplicate_keys_in_one_batch_collapse_to_the_last_row() {
 #[test]
 fn no_temporary_file_is_left_behind() {
     let dir = TempDir::new().unwrap();
-    sink(&dir)
-        .write_measurements(&[measurement(5, 0, 8, 1.0, "M")])
-        .unwrap();
+    sink(&dir).write(&[measurement(5, 0, 8, 1.0, "M")]).unwrap();
     let names: Vec<_> = fs::read_dir(partition(&dir, 8).parent().unwrap())
         .unwrap()
         .map(|e| e.unwrap().file_name())
@@ -167,19 +163,13 @@ fn station_snapshot_is_dated_and_overwritten_on_the_same_day() {
         },
     };
     let day = NaiveDate::from_ymd_opt(2026, 10, 1).unwrap();
-    let sink = sink(&dir);
+    let sink = StationSnapshotSink::new(dir.path().join("stations"), day);
     let path = dir
         .path()
         .join("stations/extracted_on=2026-10-01/stations.parquet");
 
-    assert_eq!(
-        sink.write_stations(day, &[sensor(8), sensor(5)]).unwrap(),
-        2
-    );
+    assert_eq!(sink.write(&[sensor(8), sensor(5)]).unwrap().rows_stored, 2);
     let first = fs::read(&path).unwrap();
-    assert_eq!(
-        sink.write_stations(day, &[sensor(5), sensor(8)]).unwrap(),
-        2
-    );
+    assert_eq!(sink.write(&[sensor(5), sensor(8)]).unwrap().rows_stored, 2);
     assert_eq!(fs::read(&path).unwrap(), first);
 }

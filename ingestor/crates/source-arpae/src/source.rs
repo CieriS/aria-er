@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use aq_core::{DateWindow, Measurement, Source, SourceError, StationSensor};
+use aq_http::{get_with_retry, HttpConfig, Transport};
 use chrono::FixedOffset;
 use tracing::{debug, info, warn};
 
 use crate::parse::{parse_nrt_page, parse_pollutants_csv, parse_stations_csv};
-use crate::transport::get_with_retry;
-use crate::{ArpaeConfig, HttpConfig, Transport};
+use crate::ArpaeConfig;
 
 /// ARPAE source backed by the CKAN datastore and the registry CSV exports.
 pub struct ArpaeSource<T> {
@@ -48,6 +48,11 @@ impl<T: Transport> ArpaeSource<T> {
         &self.transport
     }
 
+    /// The station registry published next to the measurements.
+    pub fn stations(&self) -> ArpaeStations<'_, T> {
+        ArpaeStations(self)
+    }
+
     fn get(&self, url: &str, query: &[(&str, &str)]) -> Result<String, SourceError> {
         get_with_retry(&self.transport, url, query, &self.http)
     }
@@ -78,7 +83,9 @@ impl<T: Transport> ArpaeSource<T> {
 }
 
 impl<T: Transport> Source for ArpaeSource<T> {
-    fn fetch_measurements(&self, window: DateWindow) -> Result<Vec<Measurement>, SourceError> {
+    type Record = Measurement;
+
+    fn fetch(&self, window: DateWindow) -> Result<Vec<Measurement>, SourceError> {
         let units = self.fetch_units()?;
         let url = format!(
             "{}/api/3/action/datastore_search_sql",
@@ -113,9 +120,17 @@ impl<T: Transport> Source for ArpaeSource<T> {
         );
         Ok(measurements)
     }
+}
 
-    fn fetch_stations(&self) -> Result<Vec<StationSensor>, SourceError> {
-        let csv_text = self.get(&self.config.stations_csv_url, &[])?;
+/// The station registry of an [`ArpaeSource`], as a source of its own.
+pub struct ArpaeStations<'a, T>(&'a ArpaeSource<T>);
+
+impl<T: Transport> Source for ArpaeStations<'_, T> {
+    type Record = StationSensor;
+
+    /// The registry is a current snapshot: the window is ignored.
+    fn fetch(&self, _window: DateWindow) -> Result<Vec<StationSensor>, SourceError> {
+        let csv_text = self.0.get(&self.0.config.stations_csv_url, &[])?;
         let sensors = parse_stations_csv(&csv_text)?;
         info!(rows = sensors.len(), "fetched ARPAE station registry");
         Ok(sensors)

@@ -4,10 +4,11 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use aq_core::{DateWindow, Source, SourceError};
+use aq_http::{HttpConfig, Transport, TransportError};
 use aq_source_arpae::parse::{
     parse_nrt_page, parse_pollutants_csv, parse_station_code, parse_stations_csv,
 };
-use aq_source_arpae::{ArpaeConfig, ArpaeSource, HttpConfig, Transport, TransportError};
+use aq_source_arpae::{ArpaeConfig, ArpaeSource};
 use chrono::{FixedOffset, NaiveDate, TimeZone, Utc};
 
 const NRT_PAGE: &str = include_str!("fixtures/nrt_page.json");
@@ -169,11 +170,11 @@ fn source_pages_by_id_until_an_empty_page_and_retries() {
     )
     .unwrap();
 
-    let measurements = source.fetch_measurements(window).unwrap();
+    let measurements = source.fetch(window).unwrap();
     assert_eq!(measurements.len(), 99);
     assert!(measurements.iter().all(|m| m.unit.is_some()));
 
-    let stations = source.fetch_stations().unwrap();
+    let stations = source.stations().fetch(window).unwrap();
     assert_eq!(stations.len(), 14);
 }
 
@@ -189,7 +190,7 @@ fn source_queries_the_window_and_advances_the_cursor() {
     )
     .unwrap();
     let source = source(transport);
-    source.fetch_measurements(window).unwrap();
+    source.fetch(window).unwrap();
 
     let queries = source.transport().queries.borrow();
     assert_eq!(queries.len(), 2);

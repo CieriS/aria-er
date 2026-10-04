@@ -1,5 +1,5 @@
 [package]
-name = "aq-source-arpae"
+name = "aq-source-openmeteo"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,7 +9,6 @@ publish.workspace = true
 aq-core.workspace = true
 aq-http.workspace = true
 chrono.workspace = true
-csv = "1"
 serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true

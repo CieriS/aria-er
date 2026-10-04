@@ -1,7 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
-use aq_source_arpae::{ArpaeConfig, HttpConfig};
+use aq_http::HttpConfig;
+use aq_source_arpae::ArpaeConfig;
+use aq_source_openmeteo::OpenMeteoConfig;
 use serde::Deserialize;
 use toml::Value;
 
@@ -11,6 +13,7 @@ const ENV_PREFIX: &str = "AQ_";
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub arpae: ArpaeConfig,
+    pub openmeteo: OpenMeteoConfig,
     pub http: HttpConfig,
     pub sink: SinkConfig,
     pub run: RunConfig,
@@ -22,6 +25,7 @@ pub struct Config {
 pub struct SinkConfig {
     pub measurements_dir: PathBuf,
     pub stations_dir: PathBuf,
+    pub weather_dir: PathBuf,
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,6 +103,7 @@ mod tests {
         assert_eq!(config.run.reprocess_window_days, 30);
         assert_eq!(config.arpae.utc_offset_hours, 1);
         assert_eq!(config.log.format, LogFormat::Text);
+        assert_eq!(config.openmeteo.coordinate_decimals, 1);
     }
 
     #[test]

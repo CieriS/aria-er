@@ -64,6 +64,42 @@ impl Measurement {
     }
 }
 
+/// Natural key of a weather observation.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct WeatherKey {
+    pub location_id: String,
+    pub observed_at: DateTime<Utc>,
+}
+
+/// One hour of weather at a location. Variables the provider has no value for are `None`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WeatherObservation {
+    /// Identifier of the requested point, derived from its rounded coordinates.
+    pub location_id: String,
+    /// Requested coordinates.
+    pub latitude: f64,
+    pub longitude: f64,
+    /// Coordinates of the model grid cell the provider answered with.
+    pub grid_latitude: f64,
+    pub grid_longitude: f64,
+    pub observed_at: DateTime<Utc>,
+    pub temperature_c: Option<f64>,
+    /// Precipitation accumulated over the hour ending at `observed_at`.
+    pub precipitation_mm: Option<f64>,
+    pub wind_speed_ms: Option<f64>,
+    pub wind_direction_deg: Option<f64>,
+    pub surface_pressure_hpa: Option<f64>,
+}
+
+impl WeatherObservation {
+    pub fn key(&self) -> WeatherKey {
+        WeatherKey {
+            location_id: self.location_id.clone(),
+            observed_at: self.observed_at,
+        }
+    }
+}
+
 /// Inclusive range of calendar days, expressed in the source's local time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DateWindow {

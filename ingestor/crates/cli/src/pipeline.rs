@@ -1,41 +1,33 @@
 use anyhow::{Context, Result};
-use aq_core::{DateWindow, Sink, Source};
+use aq_core::{DateWindow, Sink, Source, StationSensor, WriteReport};
+use aq_source_openmeteo::{dedup_locations, Location};
 use chrono::NaiveDate;
-use tracing::info;
 
-/// Fetches the station registry and the measurements of `window` and stores them.
-pub fn run<S: Source, K: Sink>(
-    source: &S,
-    sink: &K,
-    window: DateWindow,
-    extracted_on: NaiveDate,
-) -> Result<()> {
-    let sensors = source
-        .fetch_stations()
-        .context("fetching station registry")?;
-    let station_rows = sink
-        .write_stations(extracted_on, &sensors)
-        .context("writing station registry")?;
+/// Outcome of moving one kind of record from a source to a sink.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Ingested {
+    pub fetched: usize,
+    pub report: WriteReport,
+}
 
-    let measurements = source
-        .fetch_measurements(window)
-        .context("fetching measurements")?;
+/// Fetches the records of `window` from `source` and stores them in `sink`.
+///
+/// `what` names the records in error messages.
+pub fn ingest<S, K>(source: &S, sink: &K, window: DateWindow, what: &str) -> Result<Ingested>
+where
+    S: Source,
+    K: Sink<Record = S::Record>,
+{
+    let records = source
+        .fetch(window)
+        .with_context(|| format!("fetching {what}"))?;
     let report = sink
-        .write_measurements(&measurements)
-        .context("writing measurements")?;
-
-    info!(
-        from = %window.from(),
-        to = %window.to(),
-        station_rows,
-        fetched = measurements.len(),
-        inserted = report.rows_inserted,
-        updated = report.rows_updated,
-        partitions_written = report.partitions_written,
-        rows_stored = report.rows_stored,
-        "ingestion completed"
-    );
-    Ok(())
+        .write(&records)
+        .with_context(|| format!("writing {what}"))?;
+    Ok(Ingested {
+        fetched: records.len(),
+        report,
+    })
 }
 
 /// Window to ingest: explicit bounds win, otherwise the reprocessing window ending today.
@@ -54,12 +46,20 @@ pub fn resolve_window(
     }
 }
 
+/// Weather locations covering the stations of the registry that have coordinates.
+pub fn weather_locations(sensors: &[StationSensor], coordinate_decimals: u32) -> Vec<Location> {
+    let coordinates = sensors
+        .iter()
+        .filter_map(|s| Some((s.station.latitude?, s.station.longitude?)));
+    dedup_locations(coordinates, coordinate_decimals)
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
 
-    use aq_core::{Measurement, Pollutant, SourceError, Station, StationSensor};
-    use aq_sink_parquet::ParquetSink;
+    use aq_core::{Measurement, Pollutant, SourceError, Station};
+    use aq_sink_parquet::MeasurementSink;
     use chrono::{TimeZone, Utc};
 
     use super::*;
@@ -86,7 +86,9 @@ mod tests {
     }
 
     impl Source for MockSource {
-        fn fetch_measurements(&self, window: DateWindow) -> Result<Vec<Measurement>, SourceError> {
+        type Record = Measurement;
+
+        fn fetch(&self, window: DateWindow) -> Result<Vec<Measurement>, SourceError> {
             self.requested.borrow_mut().push(window);
             if self.fail {
                 return Err(SourceError::Transport {
@@ -96,26 +98,6 @@ mod tests {
                 });
             }
             Ok(self.measurements.borrow().clone())
-        }
-
-        fn fetch_stations(&self) -> Result<Vec<StationSensor>, SourceError> {
-            Ok(vec![StationSensor {
-                station: Station {
-                    id: 7_000_014,
-                    name: "GIARDINI MARGHERITA".to_owned(),
-                    municipality: "BOLOGNA".to_owned(),
-                    province: "BO".to_owned(),
-                    address: "VIALE BOTTONELLI".to_owned(),
-                    altitude_m: Some(43.0),
-                    longitude: None,
-                    latitude: None,
-                },
-                pollutant: Pollutant {
-                    id: 8,
-                    name: "NO2".to_owned(),
-                    unit: "ug/m3".to_owned(),
-                },
-            }])
         }
     }
 
@@ -131,48 +113,61 @@ mod tests {
         }
     }
 
+    fn sensor(id: u32, coordinates: Option<(f64, f64)>) -> StationSensor {
+        StationSensor {
+            station: Station {
+                id,
+                name: "STATION".to_owned(),
+                municipality: "BOLOGNA".to_owned(),
+                province: "BO".to_owned(),
+                address: String::new(),
+                altitude_m: None,
+                latitude: coordinates.map(|c| c.0),
+                longitude: coordinates.map(|c| c.1),
+            },
+            pollutant: Pollutant {
+                id: 5,
+                name: "PM10".to_owned(),
+                unit: "ug/m3".to_owned(),
+            },
+        }
+    }
+
     #[test]
     fn rerun_with_revised_data_updates_in_place_without_duplicates() {
         let dir = tempfile::tempdir().unwrap();
-        let sink = ParquetSink::new(dir.path().join("m"), dir.path().join("s"));
+        let sink = MeasurementSink::new(dir.path());
         let source = MockSource::new(vec![measurement(0, 10.0, "M"), measurement(1, 11.0, "M")]);
         let window = DateWindow::new(day(5), day(5)).unwrap();
 
-        run(&source, &sink, window, day(6)).unwrap();
+        let first = ingest(&source, &sink, window, "measurements").unwrap();
+        assert_eq!((first.fetched, first.report.rows_inserted), (2, 2));
+
         // ARPAE validates the second hour and publishes a third one.
         *source.measurements.borrow_mut() = vec![
             measurement(0, 10.0, "M"),
             measurement(1, 12.0, "G"),
             measurement(2, 13.0, "M"),
         ];
-        run(&source, &sink, window, day(6)).unwrap();
-
-        let report = sink
-            .write_measurements(&source.measurements.borrow())
-            .unwrap();
-        assert_eq!(report.rows_stored, 3);
-        assert_eq!((report.rows_inserted, report.rows_updated), (0, 0));
+        let second = ingest(&source, &sink, window, "measurements").unwrap();
+        assert_eq!(second.fetched, 3);
+        assert_eq!(
+            (second.report.rows_inserted, second.report.rows_updated),
+            (1, 1)
+        );
+        assert_eq!(second.report.rows_stored, 3);
         assert_eq!(*source.requested.borrow(), vec![window, window]);
-        assert!(dir
-            .path()
-            .join("s/extracted_on=2026-08-06/stations.parquet")
-            .exists());
     }
 
     #[test]
-    fn source_failure_is_reported_with_context() {
+    fn source_failure_is_reported_with_context_and_writes_nothing() {
         let dir = tempfile::tempdir().unwrap();
-        let sink = ParquetSink::new(dir.path().join("m"), dir.path().join("s"));
+        let sink = MeasurementSink::new(dir.path().join("m"));
         let mut source = MockSource::new(Vec::new());
         source.fail = true;
+        let window = DateWindow::new(day(5), day(5)).unwrap();
 
-        let error = run(
-            &source,
-            &sink,
-            DateWindow::new(day(5), day(5)).unwrap(),
-            day(6),
-        )
-        .unwrap_err();
+        let error = ingest(&source, &sink, window, "measurements").unwrap_err();
         assert!(format!("{error:#}").contains("fetching measurements"));
         assert!(!dir.path().join("m").exists());
     }
@@ -192,5 +187,20 @@ mod tests {
         assert_eq!((window.from(), window.to()), (day(6), day(10)));
 
         assert!(resolve_window(Some(day(10)), Some(day(1)), day(31), 30).is_err());
+    }
+
+    #[test]
+    fn weather_locations_merge_nearby_stations_and_skip_missing_coordinates() {
+        let sensors = [
+            sensor(7_000_014, Some((44.4827, 11.3541))),
+            sensor(7_000_099, Some((44.4712, 11.3893))),
+            sensor(2_000_003, Some((44.7937, 10.3306))),
+            sensor(9_999_999, None),
+        ];
+        let ids: Vec<_> = weather_locations(&sensors, 1)
+            .into_iter()
+            .map(|l| l.id)
+            .collect();
+        assert_eq!(ids, ["445_114", "448_103"]);
     }
 }
