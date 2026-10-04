@@ -1,6 +1,6 @@
 import json
 from collections.abc import Iterator
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any
 
 from dagster import (
@@ -11,6 +11,7 @@ from dagster import (
     Backoff,
     MaterializeResult,
     RetryPolicy,
+    asset,
     multi_asset,
 )
 from dagster_dbt import DbtCliResource, DbtProject, dbt_assets
@@ -22,6 +23,7 @@ from aria_er_orchestration.settings import SETTINGS
 # Same keys dagster-dbt gives to the dbt sources, so the lineage connects.
 RAW_MEASUREMENTS = AssetKey(["arpae_raw", "measurements"])
 RAW_STATIONS = AssetKey(["arpae_raw", "stations"])
+RAW_WEATHER = AssetKey(["openmeteo_raw", "weather"])
 
 dbt_project = DbtProject(
     project_dir=SETTINGS.dbt_project_dir,
@@ -31,6 +33,16 @@ dbt_project = DbtProject(
 dbt_project.prepare_if_dev()
 if not dbt_project.manifest_path.exists():
     dbt_project.preparer.prepare(dbt_project)
+
+
+# The upstream APIs fail intermittently beyond what the ingestor's own retries cover.
+INGEST_RETRY_POLICY = RetryPolicy(max_retries=2, delay=60, backoff=Backoff.EXPONENTIAL)
+
+
+def _ingest_window(context: AssetExecutionContext) -> tuple[date, date]:
+    """First and last day (inclusive) of the partitions selected for the run."""
+    window = context.partition_time_window
+    return window.start.date(), (window.end - timedelta(days=1)).date()
 
 
 @multi_asset(
@@ -52,16 +64,13 @@ if not dbt_project.manifest_path.exists():
     # A range of days is one `aq-ingest` call: the ARPAE API costs ~40 s per request
     # whatever the window, so one run per day would be far slower.
     backfill_policy=BackfillPolicy.single_run(),
-    # The ARPAE API fails intermittently beyond what the ingestor's own retries cover.
-    retry_policy=RetryPolicy(max_retries=2, delay=60, backoff=Backoff.EXPONENTIAL),
+    retry_policy=INGEST_RETRY_POLICY,
 )
 def arpae_raw(
     context: AssetExecutionContext, aq_ingest: AqIngestResource
 ) -> Iterator[MaterializeResult[Any]]:
     """Runs `aq-ingest` for the selected days. The upsert makes reruns idempotent."""
-    window = context.partition_time_window
-    first_day = window.start.date()
-    last_day = (window.end - timedelta(days=1)).date()
+    first_day, last_day = _ingest_window(context)
 
     context.log.info("Running aq-ingest for %s..%s", first_day, last_day)
     summary = aq_ingest.run(first_day, last_day)
@@ -79,6 +88,34 @@ def arpae_raw(
     yield MaterializeResult(
         asset_key=RAW_STATIONS,
         metadata={"rows": counters["station_rows"]} if "station_rows" in counters else {},
+    )
+
+
+@asset(
+    key=RAW_WEATHER,
+    description="Hourly Open-Meteo weather at the station coordinates (raw layer).",
+    group_name="ingestion",
+    kinds={"rust", "parquet"},
+    partitions_def=daily_partitions,
+    backfill_policy=BackfillPolicy.single_run(),
+    retry_policy=INGEST_RETRY_POLICY,
+)
+def openmeteo_raw_weather(
+    context: AssetExecutionContext, aq_ingest: AqIngestResource
+) -> MaterializeResult[Any]:
+    """Runs `aq-ingest weather` for the selected days."""
+    first_day, last_day = _ingest_window(context)
+
+    context.log.info("Running aq-ingest weather for %s..%s", first_day, last_day)
+    summary = aq_ingest.run(first_day, last_day, command="weather")
+    context.log.info("aq-ingest log:\n%s", summary.log)
+
+    return MaterializeResult(
+        metadata={
+            "first_day": first_day.isoformat(),
+            "last_day": last_day.isoformat(),
+            **summary.counters,
+        },
     )
 
 

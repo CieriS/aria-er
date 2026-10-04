@@ -48,6 +48,14 @@ def test_ingest_passes_the_window_and_parses_the_summary(tmp_path: Path) -> None
     }
 
 
+def test_ingest_can_run_the_weather_subcommand(tmp_path: Path) -> None:
+    resource = fake_binary(tmp_path, 'echo "$@" > args.txt')
+
+    resource.run(date(2026, 8, 1), date(2026, 8, 2), command="weather")
+
+    assert (tmp_path / "args.txt").read_text().split()[2] == "weather"
+
+
 def test_ingest_failure_carries_the_ingestor_log(tmp_path: Path) -> None:
     resource = fake_binary(
         tmp_path, "echo 'Error: fetching measurements: HTTP status 502' >&2\nexit 1"

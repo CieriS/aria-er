@@ -6,7 +6,13 @@ from dagster._core.definitions.unresolved_asset_job_definition import (
     UnresolvedAssetJobDefinition,
 )
 
-from aria_er_orchestration.assets import RAW_MEASUREMENTS, RAW_STATIONS, arpae_raw
+from aria_er_orchestration.assets import (
+    RAW_MEASUREMENTS,
+    RAW_STATIONS,
+    RAW_WEATHER,
+    arpae_raw,
+    openmeteo_raw_weather,
+)
 from aria_er_orchestration.definitions import defs
 from aria_er_orchestration.partitions import daily_partitions
 from aria_er_orchestration.resources import AqIngestResource, WarehouseResource
@@ -34,6 +40,14 @@ def test_lineage_runs_from_ingestion_to_marts() -> None:
         assert {RAW_MEASUREMENTS, RAW_STATIONS} <= ancestors, mart
 
 
+def test_weather_is_upstream_of_the_correlation_mart() -> None:
+    graph = defs.resolve_asset_graph()
+
+    assert graph.get(AssetKey(["stg_openmeteo__weather"])).parent_keys == {RAW_WEATHER}
+    ancestors = graph.get_ancestor_asset_keys(AssetKey(["mart_weather_correlation"]))
+    assert {RAW_WEATHER, RAW_MEASUREMENTS, RAW_STATIONS} <= ancestors
+
+
 def test_every_materializable_asset_is_daily_partitioned() -> None:
     graph = defs.resolve_asset_graph()
     for key in graph.materializable_asset_keys:
@@ -41,9 +55,10 @@ def test_every_materializable_asset_is_daily_partitioned() -> None:
 
 
 def test_ingestion_has_a_retry_policy() -> None:
-    policy = arpae_raw.op.retry_policy
-    assert policy is not None
-    assert policy.max_retries == 2
+    for ingestion in (arpae_raw, openmeteo_raw_weather):
+        policy = ingestion.op.retry_policy
+        assert policy is not None
+        assert policy.max_retries == 2
 
 
 def test_checks_cover_freshness_and_completeness() -> None:

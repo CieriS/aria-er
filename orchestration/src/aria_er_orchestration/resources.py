@@ -19,6 +19,7 @@ _SUMMARY_FIELDS = (
     "partitions_written",
     "rows_stored",
     "station_rows",
+    "locations",
 )
 
 
@@ -37,13 +38,17 @@ class AqIngestResource(ConfigurableResource):  # type: ignore[type-arg]
     config_path: str
     working_dir: str
 
-    def run(self, first_day: date, last_day: date) -> IngestSummary:
-        """Ingests the inclusive window; raises `Failure` with the ingestor log on error."""
-        command = [
+    def run(self, first_day: date, last_day: date, command: str = "run") -> IngestSummary:
+        """Runs an `aq-ingest` subcommand on the inclusive window.
+
+        `run` ingests ARPAE, `weather` ingests Open-Meteo. Raises `Failure` with the
+        ingestor log on error.
+        """
+        argv = [
             self.binary_path,
             "--config",
             self.config_path,
-            "run",
+            command,
             "--from",
             first_day.isoformat(),
             "--to",
@@ -51,7 +56,7 @@ class AqIngestResource(ConfigurableResource):  # type: ignore[type-arg]
         ]
         try:
             completed = subprocess.run(
-                command,
+                argv,
                 cwd=self.working_dir,
                 env={**os.environ, "AQ_LOG__FORMAT": "json"},
                 capture_output=True,
@@ -69,11 +74,11 @@ class AqIngestResource(ConfigurableResource):  # type: ignore[type-arg]
             tail = "\n".join(log.strip().splitlines()[-_ERROR_TAIL_LINES:])
             raise Failure(
                 description=(
-                    f"aq-ingest failed with exit code {completed.returncode} "
+                    f"aq-ingest {command} failed with exit code {completed.returncode} "
                     f"for {first_day}..{last_day}"
                 ),
                 metadata={
-                    "command": " ".join(command),
+                    "command": " ".join(argv),
                     "log_tail": MetadataValue.md(f"```\n{tail}\n```"),
                 },
             )
