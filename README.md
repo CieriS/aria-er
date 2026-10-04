@@ -29,7 +29,7 @@ historized and tested dataset that answers questions like:
 ## Status
 
 🚧 Work in progress — phases 0 (data exploration), 1 (Rust ingestor), 2 (dbt models on
-DuckDB) and 3 (Dagster orchestration) are complete.
+DuckDB), 3 (Dagster orchestration) and 4 (Open-Meteo weather) are complete.
 See the roadmap below.
 
 ## How to run
@@ -46,12 +46,14 @@ make test                                     # Rust tests (no network) + dbt bu
 make lint                                     # cargo fmt + clippy, ruff + mypy --strict
 ```
 
-`make ingest` runs `aq-ingest run [--from YYYY-MM-DD] [--to YYYY-MM-DD]`. It downloads
-the station registry and the measurements of the window, and writes:
+`make ingest` runs `aq-ingest run` and then `aq-ingest weather`, both taking
+`[--from YYYY-MM-DD] [--to YYYY-MM-DD]`. The first downloads the station registry and the
+measurements of the window, the second the hourly weather at the station coordinates:
 
 ```
 raw/arpae/measurements/year=YYYY/month=MM/part-0.parquet
 raw/arpae/stations/extracted_on=YYYY-MM-DD/stations.parquet
+raw/openmeteo/weather/year=YYYY/month=MM/part-0.parquet
 ```
 
 A full month for the whole region is ~113k rows and takes about 4 minutes, almost all of
@@ -138,6 +140,9 @@ least once.
 | intermediate | `int_stations_current` | Current attributes of each station |
 | mart | `mart_exceedances_yearly` | Exceedances of each legal limit per station and year |
 | mart | `mart_data_completeness` | Coverage per station, pollutant and day, including empty days |
+| staging | `stg_openmeteo__weather` | Hourly weather per location, UTC timestamp |
+| intermediate | `int_weather_daily` | Daily wind, precipitation, temperature and pressure per location |
+| mart | `mart_weather_correlation` | PM10 vs wind and rain, per station and season |
 
 Seeds: `air_quality_limits` (legal thresholds) and `arpae_pollutants` (averaging period and
 plausibility bound per pollutant).
@@ -199,14 +204,52 @@ D.Lgs. 155/2010 in force:
 Annual-mean limits (PM10 and NO2 40 µg/m³, PM2.5 25 µg/m³) are not in the seed because no
 mart uses them yet. Directive (EU) 2024/2881 sets stricter values from 2030.
 
+## Weather (Open-Meteo)
+
+Hourly temperature, precipitation, wind speed and direction and surface pressure come from
+the [Open-Meteo archive API](https://open-meteo.com/en/docs/historical-weather-api)
+(`archive-api.open-meteo.com/v1/archive`), a reanalysis at roughly 10 km, queried in UTC.
+
+- **Where.** At the coordinates of the ARPAE stations, rounded to one decimal (~11 km):
+  the 54 stations of the registry collapse to 41 weather locations. A station is matched
+  to its location by the same rounding in dbt (`weather_location_id`).
+- **Storage.** Same partitioning and upsert as the measurements; natural key
+  `(location_id, observed_at)`. Re-running a window leaves the files byte-identical.
+- **Daily aggregation.** Days follow ARPAE local standard time with the same hour-ending
+  convention as the pollutants, so a PM10 day and its weather day cover the same hours.
+
+### Observed result: wind and PM10 in Bologna
+
+`mart_weather_correlation`, three Bologna stations, 2025 plus August 2026:
+
+| Station | Season | Days | Correlation PM10–wind | Mean PM10, windy days | Mean PM10, other days |
+|---|---|---|---|---|---|
+| Porta San Felice | winter | 90 | −0.47 | 11.0 µg/m³ (4 days) | 38.0 µg/m³ |
+| Giardini Margherita | winter | 81 | −0.42 | 14.2 µg/m³ (5 days) | 34.0 µg/m³ |
+| Via Chiarini | winter | 89 | −0.47 | 6.8 µg/m³ (4 days) | 29.3 µg/m³ |
+| Porta San Felice | summer | 120 | −0.21 | 15.5 µg/m³ (12 days) | 20.4 µg/m³ |
+
+A windy day is a day with mean wind of at least 3 m/s.
+
+- **Wind**: the correlation is negative in every season at all three stations (−0.17 to
+  −0.47) and strongest in winter, when calm, stable air lets particulate accumulate: on
+  the few windy winter days PM10 is a third or less of the other days.
+- **Rain**: the relation is much weaker (correlation between −0.28 and +0.07). Daily
+  rainfall alone says little; one winter series even has slightly higher PM10 on rainy days.
+- **Caveat on the other stations**: they only have August 2026 (about 30 summer days
+  each). There the PM10–wind correlation averages +0.18. One summer month is too little
+  to read much into it; winter data for those stations is not loaded yet.
+- Correlations are plain Pearson coefficients on daily values and say nothing about causes.
+
 ## Orchestration (Dagster)
 
 `make orchestrate` starts the Dagster UI and its daemon. The asset graph is the whole
 pipeline: the two raw assets written by `aq-ingest`, then every dbt seed, snapshot and model
 downstream of them.
 
-- **Ingestion asset** (`arpae_raw/measurements`, `arpae_raw/stations`): runs the `aq-ingest`
-  binary for the selected days. No ingestion logic is duplicated in Python. The counters
+- **Ingestion assets** (`arpae_raw/measurements`, `arpae_raw/stations`,
+  `openmeteo_raw/weather`): run the `aq-ingest` binary (`run` and `weather` subcommands)
+  for the selected days. No ingestion logic is duplicated in Python. The counters
   of the run (fetched, inserted, updated rows) are attached to the materialization.
 - **dbt assets**: loaded from the dbt manifest with `dagster-dbt`; dbt sources and the raw
   assets share the same keys, which is what connects the lineage. dbt tests appear as asset checks.
@@ -278,6 +321,21 @@ the expected warning, the source being stale at the time.
 - **Checks read the data, not Dagster metadata**: freshness looks at the newest
   `measured_at` in the Parquet files, which is what matters when the source itself is stale.
 
+## Design decisions (phase 4)
+
+- **`Source` and `Sink` generic over the record type**
+  ([ADR 0004](docs/adr/0004-generic-source-and-sink-traits.md)). The traits were shaped
+  around ARPAE; weather is a different record. One trait with an associated type, one
+  generic upserting sink and one pipeline function now serve both sources.
+- **Coordinates deduplicated by rounding**, not by clustering: deterministic, trivially
+  reproducible in SQL, and matched to the resolution of the weather model.
+- **Wide weather rows** (one row per hour with all variables), as the API returns them,
+  instead of one row per variable.
+- **Coordinates come from the live registry**, so the weather command has no dependency on
+  files written by a previous run.
+- **Fixed thresholds as dbt variables** for windy (3 m/s) and rainy (1 mm) days, and no
+  correlation reported under 20 days.
+
 ## Planned marts
 
 | Mart | Question |
@@ -296,7 +354,7 @@ Legal limits (Italian D.Lgs. 155/2010) will live in a dbt seed, never hardcoded.
 - [x] **1. Minimal Rust ingestor** — ARPAE → partitioned Parquet, idempotent, tested
 - [x] **2. dbt on DuckDB** — staging + `mart_exceedances_yearly` with tests
 - [x] **3. Orchestration** — Dagster daily schedule and backfills
-- [ ] **4. Second source** — Open-Meteo + `mart_weather_correlation`
+- [x] **4. Second source** — Open-Meteo + `mart_weather_correlation`
 - [ ] **5. Dashboard** — Streamlit
 - [ ] **6. Full CI** + Docker Compose
 - [ ] **7. Cloud** — GCS + BigQuery via Terraform, same dbt models with a different target
@@ -312,7 +370,9 @@ docs/                 data exploration report, ADRs
 ingestor/             Rust workspace
   config/             default configuration
   crates/core/        domain models, Source/Sink traits, errors
-  crates/source-arpae/  ARPAE client, parsing, retry
+  crates/http/        HTTP transport with timeouts and retry
+  crates/source-arpae/  ARPAE client and parsing
+  crates/source-openmeteo/  Open-Meteo archive client and parsing
   crates/sink-parquet/  partitioned Parquet writer with upsert
   crates/cli/         aq-ingest binary
 transform/            dbt project (DuckDB): staging, intermediate, marts, seeds, snapshot, tests
@@ -341,6 +401,11 @@ Makefile              ingest / transform / orchestrate / backfill / test / lint
 - A range of days is all-or-nothing: if the run fails, every partition in it is marked failed.
 - The registry snapshot is shown as daily-partitioned in Dagster although it is a dated extraction.
 - Partitions older than the datastore retention (~7 weeks) materialize successfully but ingest no rows.
+- Weather is a ~10 km reanalysis, not a measurement at the station, and stations within the same
+  rounded cell share identical weather.
+- Open-Meteo rate-limits the free API: a year for all locations right before another request can
+  answer 429 beyond the ingestor's retries (the Dagster retry, one minute later, covers it).
+- The rounding precision is configured twice (ingestor config and dbt variable) and must match.
 - Single writer: two concurrent runs on the same partition would race.
 - The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
 - No source covers early 2026 at the moment: it is not yet in the historical archive and is already outside the near-real-time window.
