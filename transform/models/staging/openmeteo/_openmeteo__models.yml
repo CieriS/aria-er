@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: stg_openmeteo__weather
+    description: >
+      Hourly Open-Meteo archive weather per location, with the timestamp as a UTC
+      timestamp. Units are those requested from the API (°C, mm, m/s, degrees, hPa).
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [location_id, observed_at_utc]
+    columns:
+      - name: location_id
+        description: Weather location (rounded coordinates of the stations it covers).
+        data_tests: [not_null]
+      - name: latitude
+        description: Requested latitude.
+      - name: longitude
+        description: Requested longitude.
+      - name: grid_latitude
+        description: Latitude of the model grid cell the provider answered with.
+      - name: grid_longitude
+        description: Longitude of the model grid cell the provider answered with.
+      - name: observed_at_utc
+        description: Hour of the observation in UTC.
+        data_tests: [not_null]
+      - name: temperature_c
+        description: Air temperature at 2 m, in °C.
+      - name: precipitation_mm
+        description: Precipitation accumulated over the preceding hour, in mm.
+      - name: wind_speed_ms
+        description: Wind speed at 10 m, in m/s.
+      - name: wind_direction_deg
+        description: Wind direction at 10 m, in degrees.
+      - name: surface_pressure_hpa
+        description: Surface pressure, in hPa.

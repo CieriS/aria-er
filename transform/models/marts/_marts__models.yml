@@ -80,3 +80,50 @@ models:
         data_tests: [not_null]
       - name: is_complete
         description: Completeness reaches the minimum required.
+
+  - name: mart_weather_correlation
+    description: >
+      Relation between daily PM10 and weather, per station and meteorological season
+      (all years together). Pearson correlation of PM10 with mean wind speed and with
+      precipitation, and mean PM10 on windy vs calm and rainy vs dry days. Thresholds are
+      dbt variables. Weather is a reanalysis at ~10 km, not a measurement at the station.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, season]
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [not_null]
+      - name: station_name
+        description: Current station name.
+      - name: municipality
+        description: Municipality of the station.
+      - name: season
+        description: Meteorological season (winter is December to February).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [winter, spring, summer, autumn]
+      - name: days
+        description: Days with both a valid PM10 mean and valid weather.
+        data_tests: [not_null]
+      - name: pm10_mean_ugm3
+        description: Mean PM10 over those days, in µg/m³.
+      - name: corr_pm10_wind
+        description: Pearson correlation between daily PM10 and mean wind speed; null with too few days.
+      - name: corr_pm10_precipitation
+        description: Pearson correlation between daily PM10 and daily precipitation; null with too few days.
+      - name: windy_days
+        description: Days with mean wind speed at or above the windy threshold.
+      - name: pm10_mean_windy_ugm3
+        description: Mean PM10 on windy days.
+      - name: pm10_mean_calm_ugm3
+        description: Mean PM10 on the other days.
+      - name: rainy_days
+        description: Days with precipitation at or above the rainy threshold.
+      - name: pm10_mean_rainy_ugm3
+        description: Mean PM10 on rainy days.
+      - name: pm10_mean_dry_ugm3
+        description: Mean PM10 on the other days.

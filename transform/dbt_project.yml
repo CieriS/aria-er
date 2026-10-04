@@ -17,6 +17,14 @@ vars:
   local_utc_offset_hours: 1
   # Must cover the ingestor reprocessing window (run.reprocess_window_days).
   lookback_days: 30
+  # Decimals station coordinates are rounded to when matched to a weather location.
+  # Must match `openmeteo.coordinate_decimals` in the ingestor configuration.
+  weather_coordinate_decimals: 1
+  # Daily thresholds used to split days in mart_weather_correlation.
+  windy_day_min_wind_ms: 3.0
+  rainy_day_min_precipitation_mm: 1.0
+  # Days needed in a station-season before a correlation is reported.
+  min_days_for_correlation: 20
   # Minimum share of valid data for an aggregate to be considered valid.
   min_coverage: 0.75
 

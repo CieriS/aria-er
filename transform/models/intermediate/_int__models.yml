@@ -21,6 +21,8 @@ models:
         description: Longitude (WGS84).
       - name: latitude
         description: Latitude (WGS84).
+      - name: weather_location_id
+        description: Weather location covering the station (rounded coordinates); null without coordinates.
 
   - name: int_measurements_deduplicated
     description: >
@@ -144,3 +146,34 @@ models:
         description: Valid hourly values in the window (at most 8).
       - name: is_valid_window
         description: The window has at least 75% of its hours.
+
+  - name: int_weather_daily
+    description: >
+      Daily weather per location in ARPAE local standard time, with the same hour-ending
+      convention as the air quality data. A day is valid with at least 75% of its hours.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [location_id, weather_date]
+    columns:
+      - name: location_id
+        description: Weather location (rounded coordinates).
+        data_tests: [not_null]
+      - name: weather_date
+        description: Calendar day in ARPAE local standard time.
+        data_tests: [not_null]
+      - name: wind_speed_mean_ms
+        description: Mean of the hourly 10 m wind speed, in m/s.
+      - name: wind_speed_max_ms
+        description: Highest hourly 10 m wind speed of the day, in m/s.
+      - name: precipitation_mm
+        description: Total precipitation of the day, in mm.
+      - name: temperature_mean_c
+        description: Mean 2 m temperature, in °C.
+      - name: surface_pressure_mean_hpa
+        description: Mean surface pressure, in hPa.
+      - name: hours
+        description: Hours with a wind and precipitation value.
+      - name: is_valid_day
+        description: The day has enough hours to be used.
+        data_tests: [not_null]
