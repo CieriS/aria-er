@@ -13,8 +13,10 @@ DAGSTER := cd orchestration && DAGSTER_HOME=$(DAGSTER_HOME) uv run dagster
 build:
 	cargo build $(MANIFEST) --release --bin aq-ingest
 
-ingest:
-	cargo run $(MANIFEST) --release --bin aq-ingest -- --config $(CONFIG) run $(WINDOW)
+# ARPAE measurements and registry, then Open-Meteo weather, for the same window.
+ingest: build
+	ingestor/target/release/aq-ingest --config $(CONFIG) run $(WINDOW)
+	ingestor/target/release/aq-ingest --config $(CONFIG) weather $(WINDOW)
 
 # Builds seeds, snapshots, models and runs their tests, then reports source freshness.
 transform:
