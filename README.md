@@ -143,9 +143,12 @@ least once.
 | staging | `stg_openmeteo__weather` | Hourly weather per location, UTC timestamp |
 | intermediate | `int_weather_daily` | Daily wind, precipitation, temperature and pressure per location |
 | mart | `mart_weather_correlation` | PM10 vs wind and rain, per station and season |
+| mart | `mart_pollutant_trend` | Annual mean per municipality, pollutant and year |
+| mart | `mart_traffic_vs_background` | Monthly traffic vs background means in the same municipality |
 
-Seeds: `air_quality_limits` (legal thresholds) and `arpae_pollutants` (averaging period and
-plausibility bound per pollutant).
+Seeds: `air_quality_limits` (legal thresholds), `arpae_pollutants` (averaging period and
+plausibility bound per pollutant) and `station_classification` (traffic or background, which
+the ARPAE registry does not publish; entered from ARPAE reports for the Bologna network).
 
 Rules applied:
 
@@ -188,6 +191,21 @@ Notes on the comparison:
   compares each single year with 25, so `is_over_allowed_exceedances` is an approximation
   for ozone until three full years are loaded.
 - 2026 rows cover August only (`year_coverage` ≈ 0.08): their counts are partial.
+
+### Ten years of PM10 in Bologna
+
+With the 2016–2024 archive files for PM10 and PM2.5 of the three Bologna stations, the marts
+reproduce the ten-year tables of the same ARPAE report:
+
+- **Annual means** (`mart_pollutant_trend`, highest station): 26, 29, 26, 26, 26, 26, 27, 22,
+  25, 24 µg/m³ for 2016–2025, identical to the report's Porta San Felice row.
+- **Exceedance days** (`mart_exceedances_yearly`): Porta San Felice matches every year
+  (33, 40, 18, 32, 42, 29, 33, 4, 26, 20). Giardini Margherita and Via Chiarini match in
+  nine years out of ten; for 2023 the marts give 3 and 5, the report 6 and 3. The cause is
+  not identified.
+- **Traffic vs background** (`mart_traffic_vs_background`, Bologna, 2025): NO2 is on average
+  31 µg/m³ at the traffic station against 15 at the background ones, PM10 24 against 19,
+  while PM2.5 shows no difference (13.3 against 13.5).
 
 ### Legal limits to verify
 
@@ -390,12 +408,15 @@ Makefile              ingest / transform / orchestrate / backfill / test / lint
   2026-09-17. The ingestor does not alert on freshness yet.
 - Rows deleted upstream are not removed from the raw layer (upsert only), and previous values of
   revised rows are not kept.
-- **2025 covers three Bologna stations only**, read from the sample CSVs; 2026 covers August only.
+- **Archive data covers three Bologna stations only**, read from the sample CSVs: every pollutant
+  for 2025, PM10 and PM2.5 only for 2016–2024. 2026 covers August only.
   January–July 2026 is missing from every source and shows as empty days in `mart_data_completeness`.
 - Archive files older than the 30-day lookback need `dbt build --full-refresh` to be loaded.
 - An 8-hour window ending on a missing hour is not produced; days with many gaps may lack a few windows.
-- The station registry has no station type (traffic / background) and the snapshot has a single
-  extraction so far, so no history yet.
+- Station types come from a hand-maintained seed covering the seven stations of the Bologna
+  network; only Bologna has both kinds in the same municipality, so `mart_traffic_vs_background`
+  has one municipality.
+- The registry snapshot has few extractions so far, so little history yet.
 - dbt tests run against local data, not fixtures; `make test` therefore needs `raw/`.
 - The schedule and UI backfills need the local daemon running; nothing runs when the machine is off.
 - A range of days is all-or-nothing: if the run fails, every partition in it is marked failed.
