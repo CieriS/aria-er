@@ -6,7 +6,8 @@ use std::collections::HashMap;
 use aq_core::{DateWindow, Source, SourceError};
 use aq_http::{HttpConfig, Transport, TransportError};
 use aq_source_arpae::parse::{
-    parse_nrt_page, parse_pollutants_csv, parse_station_code, parse_stations_csv,
+    parse_bulletin_last_page, parse_nrt_page, parse_pollutants_csv, parse_station_code,
+    parse_station_types, parse_stations_csv,
 };
 use aq_source_arpae::{ArpaeConfig, ArpaeSource};
 use chrono::{FixedOffset, NaiveDate, TimeZone, Utc};
@@ -14,6 +15,7 @@ use chrono::{FixedOffset, NaiveDate, TimeZone, Utc};
 const NRT_PAGE: &str = include_str!("fixtures/nrt_page.json");
 const POLLUTANTS: &str = include_str!("fixtures/pollutants.csv");
 const STATIONS: &str = include_str!("fixtures/stations.csv");
+const BULLETIN_PAGE: &str = include_str!("fixtures/bulletin_page.json");
 const EMPTY_PAGE: &str = r#"{"success": true, "result": {"records": [], "fields": []}}"#;
 
 fn utc_plus_one() -> FixedOffset {
@@ -135,6 +137,10 @@ impl Transport for FixtureTransport {
                 self.queries.borrow_mut().push(sql);
                 Ok(if first_page { NRT_PAGE } else { EMPTY_PAGE }.to_owned())
             }
+            "http://apps.test/bollettini_qa" => {
+                self.queries.borrow_mut().push(format!("{query:?}"));
+                Ok(BULLETIN_PAGE.to_owned())
+            }
             other => panic!("unexpected url {other}"),
         }
     }
@@ -146,6 +152,7 @@ fn source(transport: FixtureTransport) -> ArpaeSource<FixtureTransport> {
         measurements_resource_id: "4dc855a1-6298-4b71-a1ae-d80693d43dcb".to_owned(),
         stations_csv_url: "http://sheets.test/stations".to_owned(),
         pollutants_csv_url: "http://sheets.test/pollutants".to_owned(),
+        bulletin_url: "http://apps.test/bollettini_qa".to_owned(),
         utc_offset_hours: 1,
         page_size: 100,
     };
@@ -206,6 +213,7 @@ fn source_rejects_a_resource_id_that_is_not_a_uuid() {
         measurements_resource_id: "x\" OR 1=1 --".to_owned(),
         stations_csv_url: String::new(),
         pollutants_csv_url: String::new(),
+        bulletin_url: String::new(),
         utc_offset_hours: 1,
         page_size: 100,
     };
@@ -220,4 +228,62 @@ fn source_rejects_a_resource_id_that_is_not_a_uuid() {
         fail_first: RefCell::new(false),
     };
     assert!(ArpaeSource::new(transport, config, http).is_err());
+}
+
+#[test]
+fn bulletin_listing_points_to_its_last_page() {
+    assert_eq!(parse_bulletin_last_page(BULLETIN_PAGE).unwrap(), Some(172));
+    assert_eq!(parse_bulletin_last_page(r#"{"_items": []}"#).unwrap(), None);
+    let broken = r#"{"_items": [], "_links": {"last": {"href": "bollettini_qa?t=json"}}}"#;
+    assert!(parse_bulletin_last_page(broken).is_err());
+}
+
+#[test]
+fn station_types_come_from_the_latest_bulletin_and_its_current_version() {
+    let types = parse_station_types(BULLETIN_PAGE).unwrap();
+
+    // The fixture holds two bulletins: only the most recent one is used.
+    assert!(types.iter().all(|t| t.bulletin_id == "20191116"));
+
+    let giardini = types.iter().find(|t| t.station_id == 4_000_002).unwrap();
+    assert_eq!(giardini.station_name, "MODENA - GIARDINI");
+    assert_eq!(giardini.province, "MO");
+    assert_eq!(giardini.type_label, "Urbana Traffico");
+
+    // Modena has two versions in this bulletin: stations are not duplicated.
+    let mut ids: Vec<_> = types.iter().map(|t| t.station_id).collect();
+    let before = ids.len();
+    ids.sort_unstable();
+    ids.dedup();
+    assert_eq!(ids.len(), before);
+    assert!(types.iter().any(|t| t.province == "BO"));
+}
+
+#[test]
+fn bulletin_without_stations_fails_loudly() {
+    assert!(parse_station_types(r#"{"_items": []}"#).is_err());
+    assert!(parse_station_types(r#"{"_items": [{"_id": "20261004", "manuale": true}]}"#).is_err());
+    let bad_code = r#"{"_items": [{"_id": "20261004", "bo": [{"data": [
+        {"prov": "BO", "idstazione": "x1", "stazione": "S", "tipostazione": "Urbana Fondo"}]}]}]}"#;
+    assert!(parse_station_types(bad_code).is_err());
+}
+
+#[test]
+fn source_reads_station_types_from_the_last_page() {
+    let source = source(FixtureTransport {
+        queries: RefCell::new(Vec::new()),
+        fail_first: RefCell::new(false),
+    });
+    let day = NaiveDate::from_ymd_opt(2026, 10, 4).unwrap();
+
+    let types = source
+        .station_types()
+        .fetch(DateWindow::new(day, day).unwrap())
+        .unwrap();
+
+    assert!(!types.is_empty());
+    let queries = source.transport().queries.borrow();
+    assert_eq!(queries.len(), 2);
+    assert!(queries[0].contains("\"t\", \"json\"") && !queries[0].contains("page"));
+    assert!(queries[1].contains("\"page\", \"172\""));
 }

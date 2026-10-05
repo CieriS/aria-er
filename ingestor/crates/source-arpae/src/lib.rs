@@ -8,4 +8,4 @@ pub mod parse;
 mod source;
 
 pub use config::ArpaeConfig;
-pub use source::{ArpaeSource, ArpaeStations};
+pub use source::{ArpaeSource, ArpaeStationTypes, ArpaeStations};

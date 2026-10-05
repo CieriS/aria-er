@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
-use aq_core::{DateWindow, Measurement, Source, SourceError, StationSensor};
+use aq_core::{DateWindow, Measurement, Source, SourceError, StationSensor, StationType};
 use aq_http::{get_with_retry, HttpConfig, Transport};
 use chrono::FixedOffset;
 use tracing::{debug, info, warn};
 
-use crate::parse::{parse_nrt_page, parse_pollutants_csv, parse_stations_csv};
+use crate::parse::{
+    parse_bulletin_last_page, parse_nrt_page, parse_pollutants_csv, parse_station_types,
+    parse_stations_csv,
+};
 use crate::ArpaeConfig;
 
 /// ARPAE source backed by the CKAN datastore and the registry CSV exports.
@@ -51,6 +54,11 @@ impl<T: Transport> ArpaeSource<T> {
     /// The station registry published next to the measurements.
     pub fn stations(&self) -> ArpaeStations<'_, T> {
         ArpaeStations(self)
+    }
+
+    /// The type of each station, from the latest daily bulletin.
+    pub fn station_types(&self) -> ArpaeStationTypes<'_, T> {
+        ArpaeStationTypes(self)
     }
 
     fn get(&self, url: &str, query: &[(&str, &str)]) -> Result<String, SourceError> {
@@ -134,5 +142,26 @@ impl<T: Transport> Source for ArpaeStations<'_, T> {
         let sensors = parse_stations_csv(&csv_text)?;
         info!(rows = sensors.len(), "fetched ARPAE station registry");
         Ok(sensors)
+    }
+}
+
+/// The station types published with the daily bulletins of an [`ArpaeSource`].
+pub struct ArpaeStationTypes<'a, T>(&'a ArpaeSource<T>);
+
+impl<T: Transport> Source for ArpaeStationTypes<'_, T> {
+    type Record = StationType;
+
+    /// Types come from the most recent bulletin: the window is ignored.
+    fn fetch(&self, _window: DateWindow) -> Result<Vec<StationType>, SourceError> {
+        let url = &self.0.config.bulletin_url;
+        // The listing is ordered oldest first: the latest bulletin is on the last page.
+        let mut body = self.0.get(url, &[("t", "json")])?;
+        if let Some(last_page) = parse_bulletin_last_page(&body)? {
+            let page = last_page.to_string();
+            body = self.0.get(url, &[("page", &page), ("t", "json")])?;
+        }
+        let types = parse_station_types(&body)?;
+        info!(rows = types.len(), "fetched ARPAE station types");
+        Ok(types)
     }
 }

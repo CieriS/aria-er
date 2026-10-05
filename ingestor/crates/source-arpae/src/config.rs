@@ -10,6 +10,8 @@ pub struct ArpaeConfig {
     pub measurements_resource_id: String,
     pub stations_csv_url: String,
     pub pollutants_csv_url: String,
+    /// Daily air quality bulletins, which carry the type of each station.
+    pub bulletin_url: String,
     /// Fixed offset of the published timestamps from UTC, in hours.
     pub utc_offset_hours: i32,
     /// Rows requested per datastore query.

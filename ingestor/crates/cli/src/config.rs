@@ -25,6 +25,7 @@ pub struct Config {
 pub struct SinkConfig {
     pub measurements_dir: PathBuf,
     pub stations_dir: PathBuf,
+    pub station_types_dir: PathBuf,
     pub weather_dir: PathBuf,
 }
 

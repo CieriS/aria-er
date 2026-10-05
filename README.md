@@ -55,6 +55,7 @@ measurements of the window, the second the hourly weather at the station coordin
 ```
 raw/arpae/measurements/year=YYYY/month=MM/part-0.parquet
 raw/arpae/stations/extracted_on=YYYY-MM-DD/stations.parquet
+raw/arpae/station_types/extracted_on=YYYY-MM-DD/station_types.parquet
 raw/openmeteo/weather/year=YYYY/month=MM/part-0.parquet
 ```
 
