@@ -166,8 +166,8 @@ models:
   - name: mart_traffic_vs_background
     description: >
       Traffic against background stations of the same municipality: monthly means per
-      pollutant over the days on which both kinds have valid data. Covers only the
-      stations listed in the station_classification seed.
+      pollutant over the days on which both kinds have valid data. Station types come
+      from the ARPAE daily bulletin (stg_arpae__station_types).
     data_tests:
       - unique_combination:
           arguments:

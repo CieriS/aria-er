@@ -46,9 +46,6 @@ seeds:
         pollutant_id: integer
         limit_ugm3: double
         max_exceedances_per_year: integer
-    station_classification:
-      +column_types:
-        station_id: integer
     arpae_pollutants:
       +column_types:
         pollutant_id: integer
