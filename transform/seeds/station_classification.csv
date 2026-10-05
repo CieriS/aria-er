@@ -1,0 +1,8 @@
+station_id,station_type,area_type,classification_source
+7000015,traffic,urban,ARPAE report on the Bologna network 2025 - Table 2
+7000024,traffic,urban,ARPAE report on the Bologna network 2025 - Table 2
+7000002,traffic,urban,ARPAE report on the Bologna network 2025 - Table 2
+7000014,background,urban,ARPAE report on the Bologna network 2025 - Table 2
+7000041,background,suburban,ARPAE report on the Bologna network 2025 - Table 2
+7000027,background,rural,ARPAE report on the Bologna network 2025 - Table 2
+7000042,background,remote,ARPAE report on the Bologna network 2025 - Table 2
