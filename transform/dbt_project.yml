@@ -25,6 +25,8 @@ vars:
   rainy_day_min_precipitation_mm: 1.0
   # Days needed in a station-season before a correlation is reported.
   min_days_for_correlation: 20
+  # Share of valid days a year needs for its mean to be representative (D.Lgs. 155/2010, All. I).
+  min_annual_coverage: 0.9
   # Minimum share of valid data for an aggregate to be considered valid.
   min_coverage: 0.75
 
@@ -44,6 +46,9 @@ seeds:
         pollutant_id: integer
         limit_ugm3: double
         max_exceedances_per_year: integer
+    station_classification:
+      +column_types:
+        station_id: integer
     arpae_pollutants:
       +column_types:
         pollutant_id: integer

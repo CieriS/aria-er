@@ -53,3 +53,27 @@ seeds:
                 values: [60, 1440]
       - name: max_plausible_ugm3
         description: Values above this are flagged as implausible. Empty means no check.
+
+  - name: station_classification
+    description: >
+      Station type (traffic or background) and area type, which the ARPAE registry does
+      not publish. Entered from ARPAE reports; only the listed stations are classified.
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [unique, not_null]
+      - name: station_type
+        description: What the station is exposed to.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [traffic, background]
+      - name: area_type
+        description: Kind of area around the station.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [urban, suburban, rural, remote]
+      - name: classification_source
+        description: Document the classification was taken from.

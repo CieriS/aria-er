@@ -127,3 +127,75 @@ models:
         description: Mean PM10 on rainy days.
       - name: pm10_mean_dry_ugm3
         description: Mean PM10 on the other days.
+
+  - name: mart_pollutant_trend
+    description: >
+      Multi-year trend: annual mean per municipality, pollutant and year, as the average
+      of the annual means of its stations. A year is representative when every station
+      has at least 90% of valid days.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [municipality, pollutant_id, year]
+    columns:
+      - name: municipality
+        description: Municipality of the stations.
+        data_tests: [not_null]
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: pollutant_code
+        description: Short code of the pollutant.
+      - name: year
+        description: Calendar year in ARPAE local standard time.
+        data_tests: [not_null]
+      - name: stations
+        description: Stations with data for the pollutant in the year.
+      - name: annual_mean_ugm3
+        description: Average of the stations' annual means, in µg/m³.
+        data_tests: [not_null]
+      - name: min_station_mean_ugm3
+        description: Lowest annual mean among the stations.
+      - name: max_station_mean_ugm3
+        description: Highest annual mean among the stations.
+      - name: min_year_coverage
+        description: Share of valid days of the least covered station.
+      - name: is_representative
+        description: Every station reaches the minimum annual coverage.
+
+  - name: mart_traffic_vs_background
+    description: >
+      Traffic against background stations of the same municipality: monthly means per
+      pollutant over the days on which both kinds have valid data. Covers only the
+      stations listed in the station_classification seed.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [municipality, pollutant_id, month]
+    columns:
+      - name: municipality
+        description: Municipality with both a traffic and a background station.
+        data_tests: [not_null]
+      - name: pollutant_id
+        description: ARPAE parameter id.
+        data_tests: [not_null]
+      - name: pollutant_code
+        description: Short code of the pollutant.
+      - name: month
+        description: First day of the month.
+        data_tests: [not_null]
+      - name: days
+        description: Days with valid data for both kinds of station.
+      - name: traffic_stations
+        description: Traffic stations contributing.
+      - name: background_stations
+        description: Background stations contributing.
+      - name: traffic_mean_ugm3
+        description: Mean of the traffic stations, in µg/m³.
+      - name: background_mean_ugm3
+        description: Mean of the background stations, in µg/m³.
+      - name: difference_ugm3
+        description: Traffic mean minus background mean.
+        data_tests: [not_null]
+      - name: traffic_to_background_ratio
+        description: Traffic mean over background mean.
