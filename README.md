@@ -210,9 +210,11 @@ the marts reproduce the ten-year tables of the same ARPAE report:
   43, 28, 31 µg/m³, the report's Porta San Felice row except 2021 (44 against 43).
 - **Traffic vs background** (`mart_traffic_vs_background`, Bologna, 2025): NO2 is on average
   31 µg/m³ at the traffic station against 15 at the background ones, PM10 24 against 19,
-  while PM2.5 shows no difference (13.3 against 13.5). In August 2026, across the nine
-  municipalities with both kinds of station, NO2 averages 15.4 against 8.8 µg/m³ and PM10
-  21.1 against 20.7.
+  while PM2.5 shows no difference (13.3 against 13.5). Across the nine municipalities with
+  both kinds of station, the 2025 NO2 surplus at traffic stations ranges from 5.5 µg/m³
+  (Ravenna) to 15.8 (Bologna); for PM10 the regional averages are 25.4 against 22.4.
+- **Regional check**: for 2025 the mart finds a single station above the 35 allowed PM10
+  exceedance days, Modena – Giardini with 40, as stated in ARPAE's regional summary for 2025.
 
 ### Legal limits to verify
 
@@ -261,9 +263,10 @@ A windy day is a day with mean wind of at least 3 m/s.
   the few windy winter days PM10 is a third or less of the other days.
 - **Rain**: the relation is much weaker (correlation between −0.28 and +0.07). Daily
   rainfall alone says little; one winter series even has slightly higher PM10 on rainy days.
-- **Caveat on the other stations**: they only have August 2026 (about 30 summer days
-  each). There the PM10–wind correlation averages +0.18. One summer month is too little
-  to read much into it; winter data for those stations is not loaded yet.
+- **Across the region** (42 stations with 2025 data): the winter PM10–wind correlation
+  is negative at 41 of them, −0.39 on average, and mean PM10 is 14 µg/m³ on windy winter
+  days against 33 on the others. In summer the link weakens (−0.11 on average, negative
+  at 33 stations).
 - Correlations are plain Pearson coefficients on daily values and say nothing about causes.
 
 ## Dashboard (Streamlit)
@@ -450,9 +453,9 @@ Makefile              ingest / transform / orchestrate / backfill / dashboard / 
   2026-09-17. The ingestor does not alert on freshness yet.
 - Rows deleted upstream are not removed from the raw layer (upsert only), and previous values of
   revised rows are not kept.
-- **Archive data covers three Bologna stations only**, read from the sample CSVs: every pollutant
-  for 2025; PM10, PM2.5, NO2 and O3 for 2016–2024 (hourly files are stored gzipped). 2026 covers
-  August only, so the other eight municipalities have one month of traffic vs background.
+- **Archive data is a sample**, read from CSVs in the repository: 2025 PM10, PM2.5 and NO2 for the
+  46 traffic and background stations of the region; every pollutant for 2025 and PM10, PM2.5, NO2
+  and O3 for 2016–2024 for the three Bologna stations. 2026 covers August only.
   January–July 2026 is missing from every source and shows as empty days in `mart_data_completeness`.
 - Archive files older than the 30-day lookback need `dbt build --full-refresh` to be loaded.
 - An 8-hour window ending on a missing hour is not produced; days with many gaps may lack a few windows.
