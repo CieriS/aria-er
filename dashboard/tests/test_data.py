@@ -1,3 +1,8 @@
+import subprocess
+import sys
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
 
@@ -137,3 +142,43 @@ def test_warehouse_path_comes_from_the_environment(monkeypatch: pytest.MonkeyPat
     assert duckdb_path_from_env() == DEFAULT_DUCKDB_PATH
     monkeypatch.setenv("AQ_DUCKDB_PATH", "/data/custom.duckdb")
     assert duckdb_path_from_env() == Path("/data/custom.duckdb")
+
+
+@contextmanager
+def writer_holding(path: Path, seconds: float) -> Iterator[None]:
+    """Another process keeping the warehouse open for writing, as a dbt build does."""
+    script = (
+        "import duckdb, sys, time\n"
+        "connection = duckdb.connect(sys.argv[1])\n"
+        "print('locked', flush=True)\n"
+        "time.sleep(float(sys.argv[2]))\n"
+    )
+    process = subprocess.Popen(
+        [sys.executable, "-c", script, str(path), str(seconds)],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert process.stdout is not None
+        assert process.stdout.readline().strip() == "locked"
+        yield
+    finally:
+        process.kill()
+        process.wait()
+
+
+def test_a_query_waits_for_a_rebuild_to_finish(warehouse_path: Path) -> None:
+    with writer_holding(warehouse_path, seconds=1.5):
+        started = time.monotonic()
+        frame = Marts(warehouse_path, lock_wait_seconds=10).pollutant_trend("PM10")
+
+    assert len(frame) == 3
+    assert time.monotonic() - started >= 1.0
+
+
+def test_a_long_rebuild_is_reported_instead_of_crashing(warehouse_path: Path) -> None:
+    with (
+        writer_holding(warehouse_path, seconds=30),
+        pytest.raises(MartsUnavailableError, match="being rebuilt"),
+    ):
+        Marts(warehouse_path, lock_wait_seconds=0.6).pollutant_trend("PM10")

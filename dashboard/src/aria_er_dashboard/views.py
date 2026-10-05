@@ -66,7 +66,7 @@ def exceedances() -> None:
         f"Limit: **{limit:.0f} µg/m³**, at most **{allowed}** exceedances per year "
         "(red dashed line)."
     )
-    st.altair_chart(charts.exceedances_chart(frame), use_container_width=True)
+    st.altair_chart(charts.exceedances_chart(frame), width="stretch")
     st.caption(
         "A year with low coverage undercounts: check the coverage in the tooltip or the table."
     )
@@ -90,7 +90,7 @@ def trend() -> None:
     if frame.empty:
         st.info("No data for this selection.")
         return
-    st.altair_chart(charts.trend_chart(frame), use_container_width=True)
+    st.altair_chart(charts.trend_chart(frame), width="stretch")
     st.caption(
         "Line: average of the stations' annual means. Band: lowest to highest station. "
         "Hollow points: years in which a station has less than 90% of valid days."
@@ -121,7 +121,7 @@ def traffic_vs_background() -> None:
     if frame.empty:
         st.info("No data for this selection.")
         return
-    st.altair_chart(charts.traffic_vs_background_chart(frame), use_container_width=True)
+    st.altair_chart(charts.traffic_vs_background_chart(frame), width="stretch")
     st.caption("Monthly means over the days on which both kinds of station have valid data.")
     st.dataframe(frame, hide_index=True)
 
@@ -141,13 +141,13 @@ def weather() -> None:
         return
     st.altair_chart(
         charts.weather_correlation_chart(frame, "corr_pm10_wind", "Correlation PM10 vs wind"),
-        use_container_width=True,
+        width="stretch",
     )
     st.altair_chart(
         charts.weather_correlation_chart(
             frame, "corr_pm10_precipitation", "Correlation PM10 vs precipitation"
         ),
-        use_container_width=True,
+        width="stretch",
     )
     st.caption(
         "Pearson correlation of daily values. Negative: more wind or rain goes with less PM10. "
@@ -177,7 +177,7 @@ def completeness() -> None:
     if frame.empty:
         st.info("No data for this selection.")
         return
-    st.altair_chart(charts.completeness_chart(frame), use_container_width=True)
+    st.altair_chart(charts.completeness_chart(frame), width="stretch")
     st.caption(
         "Share of expected values that are valid, per day. Red days have no usable data; "
         "a day counts as complete from 75%."

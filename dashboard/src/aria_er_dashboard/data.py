@@ -5,6 +5,7 @@ filtered `select` on one mart. Calculations belong in dbt.
 """
 
 import os
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -12,6 +13,10 @@ from pathlib import Path
 
 import duckdb
 import pandas as pd
+
+# DuckDB allows a single writer: while dbt rebuilds the warehouse, readers are locked out.
+LOCK_WAIT_SECONDS = 15.0
+LOCK_RETRY_INTERVAL_SECONDS = 0.5
 
 DEFAULT_DUCKDB_PATH = Path(__file__).resolve().parents[3] / "warehouse" / "aria_er.duckdb"
 
@@ -40,19 +45,30 @@ class Marts:
     """The marts of one DuckDB warehouse."""
 
     duckdb_path: Path
+    # How long a query waits for a rebuild in progress before giving up.
+    lock_wait_seconds: float = LOCK_WAIT_SECONDS
 
     def _query(self, sql: str, parameters: Sequence[object] = ()) -> pd.DataFrame:
         if not self.duckdb_path.is_file():
             raise MartsUnavailableError(
                 f"Warehouse not found at {self.duckdb_path}. Run `make transform` first."
             )
-        try:
-            with duckdb.connect(str(self.duckdb_path), read_only=True) as connection:
-                return connection.execute(sql, list(parameters)).df()
-        except duckdb.CatalogException as error:
-            raise MartsUnavailableError(
-                f"A mart is missing in {self.duckdb_path}. Run `make transform`. ({error})"
-            ) from error
+        deadline = time.monotonic() + self.lock_wait_seconds
+        while True:
+            try:
+                with duckdb.connect(str(self.duckdb_path), read_only=True) as connection:
+                    return connection.execute(sql, list(parameters)).df()
+            except duckdb.CatalogException as error:
+                raise MartsUnavailableError(
+                    f"A mart is missing in {self.duckdb_path}. Run `make transform`. ({error})"
+                ) from error
+            except duckdb.IOException as error:
+                # The file is locked by a writer: wait for the rebuild to finish.
+                if time.monotonic() >= deadline:
+                    raise MartsUnavailableError(
+                        "The warehouse is being rebuilt and is locked. Reload in a moment."
+                    ) from error
+                time.sleep(LOCK_RETRY_INTERVAL_SECONDS)
 
     def distinct(self, mart: str, column: str) -> list[object]:
         """Sorted distinct non-null values of a mart column, for filter widgets."""
