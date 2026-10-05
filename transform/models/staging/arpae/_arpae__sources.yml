@@ -24,4 +24,4 @@ sources:
       - name: measurements
         description: One row per station, pollutant and averaging interval.
         config:
-          external_location: "read_csv('{{ var('historical_dir') }}/storico_*/*.csv', header = true, all_varchar = true)"
+          external_location: "read_csv('{{ var('historical_dir') }}/storico_*/*.csv*', header = true, all_varchar = true)"
