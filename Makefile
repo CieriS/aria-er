@@ -8,7 +8,7 @@ DBT := cd transform && uv run dbt
 DAGSTER_HOME := $(CURDIR)/orchestration/.dagster_home
 DAGSTER := cd orchestration && DAGSTER_HOME=$(DAGSTER_HOME) uv run dagster
 
-.PHONY: build ingest transform orchestrate backfill test lint
+.PHONY: build ingest transform orchestrate backfill dashboard test lint
 
 build:
 	cargo build $(MANIFEST) --release --bin aq-ingest
@@ -35,14 +35,20 @@ backfill: build
 	mkdir -p $(DAGSTER_HOME)
 	$(DAGSTER) asset materialize -m aria_er_orchestration.definitions --select '*' --partition-range $(FROM)...$(TO)
 
+# Streamlit dashboard on http://localhost:8501, reading the marts built by `make transform`.
+dashboard:
+	cd dashboard && uv run streamlit run src/aria_er_dashboard/app.py --server.port 8501
+
 # The dbt tests run against the data in raw/: run `make ingest` at least once before.
 test:
 	cargo test $(MANIFEST)
 	mkdir -p warehouse
 	$(DBT) build --profiles-dir .
 	cd orchestration && uv run pytest -q
+	cd dashboard && uv run pytest -q
 
 lint:
 	cargo fmt $(MANIFEST) --all -- --check
 	cargo clippy $(MANIFEST) --all-targets -- -D warnings
 	cd orchestration && uv run ruff format --check . && uv run ruff check . && uv run mypy
+	cd dashboard && uv run ruff format --check . && uv run ruff check . && uv run mypy
