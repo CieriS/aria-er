@@ -203,9 +203,10 @@ the marts reproduce the ten-year tables of the same ARPAE report:
 - **Annual means** (`mart_pollutant_trend`, highest station): 26, 29, 26, 26, 26, 26, 27, 22,
   25, 24 µg/m³ for 2016–2025, identical to the report's Porta San Felice row.
 - **Exceedance days** (`mart_exceedances_yearly`): Porta San Felice matches every year
-  (33, 40, 18, 32, 42, 29, 33, 4, 26, 20). Giardini Margherita and Via Chiarini match in
-  nine years out of ten; for 2023 the marts give 3 and 5, the report 6 and 3. The cause is
-  not identified.
+  (33, 40, 18, 32, 42, 29, 33, 4, 26, 20), and so do Giardini Margherita and Via Chiarini.
+  For 2023 the ten-year table of the 2025 report lists 6 and 3 for these two stations,
+  while the marts give 3 and 5: the 2023 and 2024 editions of the same report both say 3
+  and 5, month by month as in the marts, so the 2025 table has those two cells wrong.
 - **NO2 annual means** (`mart_pollutant_trend`, highest station): 52, 46, 49, 46, 38, 44, 39,
   43, 28, 31 µg/m³, the report's Porta San Felice row except 2021 (44 against 43).
 - **Traffic vs background** (`mart_traffic_vs_background`, Bologna, 2025): NO2 is on average
