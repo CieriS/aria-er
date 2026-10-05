@@ -8,6 +8,7 @@ from dagster._core.definitions.unresolved_asset_job_definition import (
 
 from aria_er_orchestration.assets import (
     RAW_MEASUREMENTS,
+    RAW_STATION_TYPES,
     RAW_STATIONS,
     RAW_WEATHER,
     arpae_raw,
@@ -38,6 +39,14 @@ def test_lineage_runs_from_ingestion_to_marts() -> None:
     for mart in ("mart_exceedances_yearly", "mart_data_completeness"):
         ancestors = graph.get_ancestor_asset_keys(AssetKey([mart]))
         assert {RAW_MEASUREMENTS, RAW_STATIONS} <= ancestors, mart
+
+
+def test_station_types_feed_the_traffic_vs_background_mart() -> None:
+    graph = defs.resolve_asset_graph()
+
+    assert graph.get(AssetKey(["stg_arpae__station_types"])).parent_keys == {RAW_STATION_TYPES}
+    ancestors = graph.get_ancestor_asset_keys(AssetKey(["mart_traffic_vs_background"]))
+    assert {RAW_STATION_TYPES, RAW_MEASUREMENTS} <= ancestors
 
 
 def test_weather_is_upstream_of_the_correlation_mart() -> None:

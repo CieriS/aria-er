@@ -11,7 +11,7 @@ from aria_er_orchestration.resources import AqIngestResource, WarehouseResource
 
 SUMMARY_LINE = (
     '{"timestamp":"2026-10-01T20:32:39Z","level":"INFO","fields":{"message":"ingestion completed",'
-    '"from":"2026-08-01","to":"2026-08-31","station_rows":273,"fetched":112795,"inserted":12,'
+    '"from":"2026-08-01","to":"2026-08-31","station_rows":273,"station_type_rows":67,"fetched":112795,"inserted":12,'
     '"updated":3,"partitions_written":2,"rows_stored":112795},"target":"aq_ingest::pipeline"}'
 )
 
@@ -45,6 +45,7 @@ def test_ingest_passes_the_window_and_parses_the_summary(tmp_path: Path) -> None
         "partitions_written": 2,
         "rows_stored": 112795,
         "station_rows": 273,
+        "station_type_rows": 67,
     }
 
 

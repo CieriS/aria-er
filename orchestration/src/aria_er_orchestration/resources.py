@@ -19,6 +19,7 @@ _SUMMARY_FIELDS = (
     "partitions_written",
     "rows_stored",
     "station_rows",
+    "station_type_rows",
     "locations",
 )
 

@@ -23,6 +23,7 @@ from aria_er_orchestration.settings import SETTINGS
 # Same keys dagster-dbt gives to the dbt sources, so the lineage connects.
 RAW_MEASUREMENTS = AssetKey(["arpae_raw", "measurements"])
 RAW_STATIONS = AssetKey(["arpae_raw", "stations"])
+RAW_STATION_TYPES = AssetKey(["arpae_raw", "station_types"])
 RAW_WEATHER = AssetKey(["openmeteo_raw", "weather"])
 
 dbt_project = DbtProject(
@@ -59,6 +60,12 @@ def _ingest_window(context: AssetExecutionContext) -> tuple[date, date]:
             group_name="ingestion",
             kinds={"rust", "parquet"},
         ),
+        AssetSpec(
+            RAW_STATION_TYPES,
+            description="Dated snapshot of the station types from the ARPAE bulletin (raw layer).",
+            group_name="ingestion",
+            kinds={"rust", "parquet"},
+        ),
     ],
     partitions_def=daily_partitions,
     # A range of days is one `aq-ingest` call: the ARPAE API costs ~40 s per request
@@ -82,12 +89,18 @@ def arpae_raw(
         metadata={
             "first_day": first_day.isoformat(),
             "last_day": last_day.isoformat(),
-            **{name: counters[name] for name in counters if name != "station_rows"},
+            **{name: value for name, value in counters.items() if not name.startswith("station_")},
         },
     )
     yield MaterializeResult(
         asset_key=RAW_STATIONS,
         metadata={"rows": counters["station_rows"]} if "station_rows" in counters else {},
+    )
+    yield MaterializeResult(
+        asset_key=RAW_STATION_TYPES,
+        metadata=(
+            {"rows": counters["station_type_rows"]} if "station_type_rows" in counters else {}
+        ),
     )
 
 
