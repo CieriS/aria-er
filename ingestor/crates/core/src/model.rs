@@ -30,6 +30,18 @@ pub struct StationSensor {
     pub pollutant: Pollutant,
 }
 
+/// Type of a station as published in an ARPAE daily bulletin.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StationType {
+    pub station_id: u32,
+    pub station_name: String,
+    pub province: String,
+    /// Label exactly as published, e.g. `Urbana Traffico`.
+    pub type_label: String,
+    /// Identifier (date) of the bulletin the label comes from.
+    pub bulletin_id: String,
+}
+
 /// Natural key of a measurement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MeasurementKey {

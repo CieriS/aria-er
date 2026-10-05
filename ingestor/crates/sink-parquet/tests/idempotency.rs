@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use aq_core::{Measurement, Pollutant, Sink, Station, StationSensor};
-use aq_sink_parquet::{MeasurementSink, StationSnapshotSink};
+use aq_core::{Measurement, Pollutant, Sink, Station, StationSensor, StationType};
+use aq_sink_parquet::{MeasurementSink, StationSnapshotSink, StationTypeSnapshotSink};
 use arrow_array::cast::AsArray;
 use arrow_array::types::Float64Type;
 use chrono::{NaiveDate, TimeZone, Utc};
@@ -171,5 +171,33 @@ fn station_snapshot_is_dated_and_overwritten_on_the_same_day() {
     assert_eq!(sink.write(&[sensor(8), sensor(5)]).unwrap().rows_stored, 2);
     let first = fs::read(&path).unwrap();
     assert_eq!(sink.write(&[sensor(5), sensor(8)]).unwrap().rows_stored, 2);
+    assert_eq!(fs::read(&path).unwrap(), first);
+}
+
+#[test]
+fn station_type_snapshot_is_sorted_dated_and_idempotent() {
+    let dir = TempDir::new().unwrap();
+    let station_type = |id: u32, label: &str| StationType {
+        station_id: id,
+        station_name: format!("STATION {id}"),
+        province: "BO".to_owned(),
+        type_label: label.to_owned(),
+        bulletin_id: "20261004".to_owned(),
+    };
+    let day = NaiveDate::from_ymd_opt(2026, 10, 5).unwrap();
+    let sink = StationTypeSnapshotSink::new(dir.path(), day);
+    let path = dir
+        .path()
+        .join("extracted_on=2026-10-05/station_types.parquet");
+
+    let rows = [
+        station_type(7_000_015, "Urbana Traffico"),
+        station_type(7_000_014, "Urbana Fondo"),
+    ];
+    assert_eq!(sink.write(&rows).unwrap().rows_stored, 2);
+    let first = fs::read(&path).unwrap();
+
+    let reversed = [rows[1].clone(), rows[0].clone()];
+    sink.write(&reversed).unwrap();
     assert_eq!(fs::read(&path).unwrap(), first);
 }

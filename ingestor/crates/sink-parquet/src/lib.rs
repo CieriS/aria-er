@@ -8,6 +8,7 @@
 mod measurements;
 mod partitioned;
 mod snapshot;
+mod station_types;
 mod stations;
 mod weather;
 
@@ -15,7 +16,7 @@ use std::fs::{self, File};
 use std::path::Path;
 use std::sync::Arc;
 
-use aq_core::{Measurement, SinkError, StationSensor, WeatherObservation};
+use aq_core::{Measurement, SinkError, StationSensor, StationType, WeatherObservation};
 use arrow_array::RecordBatch;
 use arrow_schema::Schema;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
@@ -30,6 +31,8 @@ pub use snapshot::{SnapshotRecord, SnapshotSink};
 pub type MeasurementSink = PartitionedSink<Measurement>;
 /// Sink for dated snapshots of the station registry.
 pub type StationSnapshotSink = SnapshotSink<StationSensor>;
+/// Sink for dated snapshots of the station types.
+pub type StationTypeSnapshotSink = SnapshotSink<StationType>;
 /// Sink for hourly weather observations.
 pub type WeatherSink = PartitionedSink<WeatherObservation>;
 

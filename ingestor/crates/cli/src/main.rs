@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use aq_core::{DateWindow, Source};
 use aq_http::UreqTransport;
-use aq_sink_parquet::{MeasurementSink, StationSnapshotSink, WeatherSink};
+use aq_sink_parquet::{MeasurementSink, StationSnapshotSink, StationTypeSnapshotSink, WeatherSink};
 use aq_source_arpae::ArpaeSource;
 use aq_source_openmeteo::OpenMeteoSource;
 use chrono::{Duration, NaiveDate, Utc};
@@ -29,7 +29,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Ingest ARPAE measurements and the station registry.
+    /// Ingest ARPAE measurements, the station registry and the station types.
     Run(Window),
     /// Ingest hourly Open-Meteo weather at the coordinates of the ARPAE stations.
     Weather(Window),
@@ -95,6 +95,11 @@ fn run_arpae(config: Config, window: DateWindow) -> Result<()> {
     let station_sink = StationSnapshotSink::new(config.sink.stations_dir, Utc::now().date_naive());
     let stations = pipeline::ingest(&arpae.stations(), &station_sink, window, "station registry")?;
 
+    let type_sink =
+        StationTypeSnapshotSink::new(config.sink.station_types_dir, Utc::now().date_naive());
+    let station_types =
+        pipeline::ingest(&arpae.station_types(), &type_sink, window, "station types")?;
+
     let measurement_sink = MeasurementSink::new(config.sink.measurements_dir);
     let measurements = pipeline::ingest(&arpae, &measurement_sink, window, "measurements")?;
 
@@ -102,6 +107,7 @@ fn run_arpae(config: Config, window: DateWindow) -> Result<()> {
         from = %window.from(),
         to = %window.to(),
         station_rows = stations.fetched,
+        station_type_rows = station_types.fetched,
         fetched = measurements.fetched,
         inserted = measurements.report.rows_inserted,
         updated = measurements.report.rows_updated,

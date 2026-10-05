@@ -6,7 +6,7 @@ mod traits;
 
 pub use error::{SinkError, SourceError};
 pub use model::{
-    DateWindow, Measurement, MeasurementKey, Pollutant, Station, StationSensor, WeatherKey,
-    WeatherObservation,
+    DateWindow, Measurement, MeasurementKey, Pollutant, Station, StationSensor, StationType,
+    WeatherKey, WeatherObservation,
 };
 pub use traits::{Sink, Source, WriteReport};

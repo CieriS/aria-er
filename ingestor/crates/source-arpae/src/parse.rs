@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use aq_core::{Measurement, Pollutant, SourceError, Station, StationSensor};
+use aq_core::{Measurement, Pollutant, SourceError, Station, StationSensor, StationType};
 use chrono::{FixedOffset, NaiveDateTime, TimeZone, Utc};
 use serde::Deserialize;
 
@@ -202,4 +202,100 @@ pub fn parse_stations_csv(csv_text: &str) -> Result<Vec<StationSensor>, SourceEr
             })
         })
         .collect()
+}
+
+#[derive(Deserialize)]
+struct BulletinPage {
+    #[serde(rename = "_items")]
+    items: Vec<serde_json::Map<String, serde_json::Value>>,
+    #[serde(rename = "_links", default)]
+    links: BulletinLinks,
+}
+
+#[derive(Deserialize, Default)]
+struct BulletinLinks {
+    last: Option<BulletinLink>,
+}
+
+#[derive(Deserialize)]
+struct BulletinLink {
+    href: String,
+}
+
+#[derive(Deserialize)]
+struct BulletinVersion {
+    data: Vec<BulletinStation>,
+}
+
+#[derive(Deserialize)]
+struct BulletinStation {
+    prov: String,
+    idstazione: String,
+    stazione: String,
+    tipostazione: String,
+}
+
+fn bulletin_page(json: &str) -> Result<BulletinPage, SourceError> {
+    serde_json::from_str(json).map_err(|e| format_error("bulletin page", e.to_string()))
+}
+
+/// Number of the last page of the bulletin listing, from its `_links.last`.
+/// `None` when the listing has a single page.
+pub fn parse_bulletin_last_page(json: &str) -> Result<Option<u32>, SourceError> {
+    let Some(last) = bulletin_page(json)?.links.last else {
+        return Ok(None);
+    };
+    last.href
+        .split(['?', '&'])
+        .find_map(|parameter| parameter.strip_prefix("page="))
+        .and_then(|page| page.parse().ok())
+        .map(Some)
+        .ok_or_else(|| format_error("bulletin page", format!("last page link {:?}", last.href)))
+}
+
+/// Station types of the most recent bulletin in a page of the listing.
+///
+/// A bulletin holds, per province, a list of versions: the last one is current.
+pub fn parse_station_types(json: &str) -> Result<Vec<StationType>, SourceError> {
+    const CONTEXT: &str = "bulletin";
+    let page = bulletin_page(json)?;
+    let latest = page
+        .items
+        .iter()
+        .filter_map(|item| Some((item.get("_id")?.as_str()?, item)))
+        .max_by_key(|(id, _)| *id)
+        .ok_or_else(|| format_error(CONTEXT, "no bulletin in the page"))?;
+    let (bulletin_id, bulletin) = latest;
+
+    let mut types = Vec::new();
+    for (key, value) in bulletin {
+        // Provinces are the list-valued fields; the rest is bulletin metadata.
+        if key.starts_with('_') || !value.is_array() {
+            continue;
+        }
+        let versions: Vec<BulletinVersion> = serde_json::from_value(value.clone())
+            .map_err(|e| format_error(CONTEXT, format!("province {key}: {e}")))?;
+        let Some(current) = versions.into_iter().last() else {
+            continue;
+        };
+        for station in current.data {
+            let station_id = parse_station_code(&station.idstazione).ok_or_else(|| {
+                format_error(CONTEXT, format!("idstazione {:?}", station.idstazione))
+            })?;
+            types.push(StationType {
+                station_id,
+                station_name: station.stazione.trim().to_owned(),
+                province: station.prov.trim().to_owned(),
+                type_label: station.tipostazione.trim().to_owned(),
+                bulletin_id: bulletin_id.to_owned(),
+            });
+        }
+    }
+    if types.is_empty() {
+        return Err(format_error(
+            CONTEXT,
+            format!("bulletin {bulletin_id} lists no station"),
+        ));
+    }
+    Ok(types)
 }
