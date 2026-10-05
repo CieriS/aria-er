@@ -104,3 +104,37 @@ models:
       - name: extracted_on
         description: Date the registry was downloaded.
         data_tests: [not_null]
+
+  - name: stg_arpae__station_types
+    description: >
+      Latest type of each station (traffic, background, ...) and of its area, normalised
+      from the label of the ARPAE daily bulletin. The registry does not carry this.
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [unique, not_null]
+      - name: bulletin_station_name
+        description: Station name as written in the bulletin.
+      - name: province
+        description: Province code.
+      - name: station_type
+        description: What the station is exposed to; other covers local and mobile stations.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [traffic, background, industrial, other]
+      - name: area_type
+        description: Kind of area around the station; null when the label does not say.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [urban, suburban, rural, remote]
+      - name: type_label_original
+        description: Label as published.
+        data_tests: [not_null]
+      - name: bulletin_id
+        description: Bulletin (date) the label comes from.
+      - name: extracted_on
+        description: Date the bulletin was downloaded.
+        data_tests: [not_null]
