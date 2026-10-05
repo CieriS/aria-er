@@ -29,7 +29,8 @@ historized and tested dataset that answers questions like:
 ## Status
 
 🚧 Work in progress — phases 0 (data exploration), 1 (Rust ingestor), 2 (dbt models on
-DuckDB), 3 (Dagster orchestration) and 4 (Open-Meteo weather) are complete.
+DuckDB), 3 (Dagster orchestration), 4 (Open-Meteo weather) and 5 (Streamlit dashboard) are
+complete.
 See the roadmap below.
 
 ## How to run
@@ -42,6 +43,7 @@ make ingest FROM=2026-08-01 TO=2026-08-31     # explicit window, inclusive
 make transform                                # dbt build (seeds, snapshot, models, tests) + source freshness
 make orchestrate                              # Dagster UI + daemon on http://localhost:3000
 make backfill FROM=2026-08-01 TO=2026-08-31   # ingestion + dbt for a range of days, as one run
+make dashboard                                # Streamlit dashboard on http://localhost:8501
 make test                                     # Rust tests (no network) + dbt build with its data tests + pytest
 make lint                                     # cargo fmt + clippy, ruff + mypy --strict
 ```
@@ -259,6 +261,26 @@ A windy day is a day with mean wind of at least 3 m/s.
   to read much into it; winter data for those stations is not loaded yet.
 - Correlations are plain Pearson coefficients on daily values and say nothing about causes.
 
+## Dashboard (Streamlit)
+
+`make dashboard` opens the dashboard on the marts built by `make transform`. Each page
+answers one of the questions at the top of this README:
+
+| Page | Question | Mart |
+|---|---|---|
+| Exceedances | How many times did each station exceed the legal limits, per year? The legal maximum is a red line. | `mart_exceedances_yearly` |
+| Trend | Is air quality improving over the years, by pollutant and city? | `mart_pollutant_trend` |
+| Traffic vs background | How much does traffic add to the background pollution of the same city? | `mart_traffic_vs_background` |
+| Weather and PM10 | How much of a PM10 peak is explained by wind and rain? | `mart_weather_correlation` |
+| Data completeness | How complete are the data of each station, day by day? | `mart_data_completeness` |
+
+Filters (stations, pollutant, municipality, period) are in the sidebar of each page.
+
+The dashboard reads marts only and computes nothing: `data.py` holds one filtered `select`
+per mart, `charts.py` turns a mart DataFrame into an Altair chart, `views.py` wires widgets
+to the two. Thresholds, means and correlations all come from dbt. The warehouse is opened
+read-only; its path can be changed with `AQ_DUCKDB_PATH`.
+
 ## Orchestration (Dagster)
 
 `make orchestrate` starts the Dagster UI and its daemon. The asset graph is the whole
@@ -354,6 +376,19 @@ the expected warning, the source being stale at the time.
 - **Fixed thresholds as dbt variables** for windy (3 m/s) and rainy (1 mm) days, and no
   correlation reported under 20 days.
 
+## Design decisions (phase 5)
+
+- **Three thin layers** (data access, chart builders, pages). The first two are pure
+  functions tested without Streamlit; pages are exercised with Streamlit's `AppTest` on a
+  small synthetic warehouse.
+- **Two marts added for the dashboard** (`mart_pollutant_trend`,
+  `mart_traffic_vs_background`) rather than aggregating in Python.
+- **Station type as a seed**: the ARPAE registry does not say whether a station measures
+  traffic or background, so the classification is entered from ARPAE reports.
+- **Altair** for charts: it ships with Streamlit, no extra plotting dependency.
+- **A connection per query, read-only**: no state shared between sessions, and the
+  dashboard cannot modify the warehouse.
+
 ## Planned marts
 
 | Mart | Question |
@@ -373,7 +408,7 @@ Legal limits (Italian D.Lgs. 155/2010) will live in a dbt seed, never hardcoded.
 - [x] **2. dbt on DuckDB** — staging + `mart_exceedances_yearly` with tests
 - [x] **3. Orchestration** — Dagster daily schedule and backfills
 - [x] **4. Second source** — Open-Meteo + `mart_weather_correlation`
-- [ ] **5. Dashboard** — Streamlit
+- [x] **5. Dashboard** — Streamlit
 - [ ] **6. Full CI** + Docker Compose
 - [ ] **7. Cloud** — GCS + BigQuery via Terraform, same dbt models with a different target
 - [ ] **8. (Optional) Streaming** — only if justified in an ADR
@@ -395,8 +430,9 @@ ingestor/             Rust workspace
   crates/cli/         aq-ingest binary
 transform/            dbt project (DuckDB): staging, intermediate, marts, seeds, snapshot, tests
 orchestration/        Dagster project: assets, checks, schedule, resources, tests
+dashboard/            Streamlit app: data access, charts, pages, tests
 scratch/              throwaway exploration scripts
-Makefile              ingest / transform / orchestrate / backfill / test / lint
+Makefile              ingest / transform / orchestrate / backfill / dashboard / test / lint
 ```
 
 ## Known limitations
@@ -427,6 +463,8 @@ Makefile              ingest / transform / orchestrate / backfill / test / lint
 - Open-Meteo rate-limits the free API: a year for all locations right before another request can
   answer 429 beyond the ingestor's retries (the Dagster retry, one minute later, covers it).
 - The rounding precision is configured twice (ingestor config and dbt variable) and must match.
+- The dashboard cannot open the warehouse while a dbt build is writing it (DuckDB allows one writer).
+- Dashboard texts are in English and dates are shown as stored (calendar days in ARPAE standard time).
 - Single writer: two concurrent runs on the same partition would race.
 - The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
 - No source covers early 2026 at the moment: it is not yet in the historical archive and is already outside the near-real-time window.
