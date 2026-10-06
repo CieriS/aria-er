@@ -125,6 +125,35 @@ Phase 0 analysed one year (2025) of data for the Bologna stations. Each issue ma
 | **Many exact zeros** (e.g. 242 hourly NO values at one station) | Likely below the detection limit or rounding. Keep the values and add a quality flag rather than dropping them silently, so the analyses can decide how to treat them. |
 | **Timezone not declared**: timestamps do not follow daylight saving (24 hours on DST days) | Treated as fixed-offset local standard time (UTC+1) pending confirmation from ARPAE. Converted to UTC in storage. Europe/Rome is used only for presentation. |
 
+## Running in containers
+
+```bash
+make up      # build the images and start Dagster and the dashboard
+make down    # stop them; data stays in the Docker volumes
+```
+
+`make up` needs only Docker. It starts two services and waits until both are healthy:
+
+| Service | URL | Image |
+|---|---|---|
+| `orchestration` | http://localhost:3000 | Dagster with the dbt project and the `aq-ingest` binary |
+| `dashboard` | http://localhost:8501 | Streamlit |
+
+On a fresh clone the volumes are empty and the dashboard says so. To load data, open
+Dagster, choose *Materialize all* on the asset graph and pick a range of days (or wait for
+the 06:00 schedule): ingestion, dbt and the checks run inside the container, and the
+dashboard shows the result. A one-off ingestion without Dagster is also available:
+
+```bash
+docker compose run --rm ingestor run --from 2026-08-01 --to 2026-08-31
+```
+
+- **Images** are multi-stage, in `docker/`. The ingestor image is the Rust binary on a
+  distroless base (67 MB); the two Python images install their locked dependencies with uv.
+- **Volumes**: `raw` (Parquet written by the ingestor), `warehouse` (the DuckDB file,
+  written by dbt and read by the dashboard) and `dagster_home` (run history).
+- All containers run as the same unprivileged user, so they can share the volumes.
+
 ## Transformations (dbt on DuckDB)
 
 `make transform` builds the warehouse in `warehouse/aria_er.duckdb` from the Parquet files
@@ -400,6 +429,16 @@ the expected warning, the source being stale at the time.
 - **A connection per query, read-only**: no state shared between sessions, and the
   dashboard cannot modify the warehouse.
 
+## Design decisions (phase 6)
+
+- **One Dagster container** running `dagster dev` (webserver and daemon together) instead of
+  separate services with a Postgres run storage: enough for a single-machine stack.
+- **The orchestration image carries the binary and the dbt project**, because Dagster calls
+  both. The ingestor image exists on its own for one-off runs and as the minimal artifact.
+- **Named volumes, not bind mounts**, so a clone needs no local directories or permissions.
+- **dbt in CI runs on committed fixtures** (a 76 KB real slice written with the ingestor's
+  schema), built twice to cover the incremental path, with no network.
+
 ## Planned marts
 
 | Mart | Question |
@@ -443,7 +482,9 @@ transform/            dbt project (DuckDB): staging, intermediate, marts, seeds,
 orchestration/        Dagster project: assets, checks, schedule, resources, tests
 dashboard/            Streamlit app: data access, charts, pages, tests
 scratch/              throwaway exploration scripts
-Makefile              ingest / transform / orchestrate / backfill / dashboard / test / lint
+docker/               Dockerfiles for ingestor, orchestration and dashboard
+docker-compose.yml    local stack
+Makefile              ingest / transform / orchestrate / backfill / dashboard / up / down / test / lint
 ```
 
 ## Known limitations
@@ -477,6 +518,10 @@ Makefile              ingest / transform / orchestrate / backfill / dashboard / 
 - DuckDB allows one writer: while a dbt build is running the dashboard waits up to 15 seconds
   for it, then asks to reload.
 - Dashboard texts are in English and dates are shown as stored (calendar days in ARPAE standard time).
+- The Python images are large (about 0.9 GB each): Dagster, dbt and Streamlit pull in heavy
+  dependencies and no effort was made to slim them.
+- The container stack keeps Dagster's run history in SQLite on a volume: fine for one machine,
+  not for several workers.
 - Single writer: two concurrent runs on the same partition would race.
 - The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
 - No source covers early 2026 at the moment: it is not yet in the historical archive and is already outside the near-real-time window.
