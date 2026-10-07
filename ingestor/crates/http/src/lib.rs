@@ -44,12 +44,17 @@ pub struct UreqTransport {
     agent: ureq::Agent,
 }
 
+/// Largest response body accepted. The biggest real responses (a page of ARPAE
+/// measurements, a year of weather for several locations) are below 10 MB.
+const MAX_BODY_BYTES: u64 = 256 * 1024 * 1024;
+
 impl UreqTransport {
     pub fn new(config: &HttpConfig) -> Self {
-        let agent = ureq::AgentBuilder::new()
-            .timeout_connect(Duration::from_secs(config.connect_timeout_secs))
-            .timeout(Duration::from_secs(config.timeout_secs))
-            .build();
+        let agent = ureq::Agent::config_builder()
+            .timeout_connect(Some(Duration::from_secs(config.connect_timeout_secs)))
+            .timeout_global(Some(Duration::from_secs(config.timeout_secs)))
+            .build()
+            .into();
         Self { agent }
     }
 }
@@ -61,16 +66,22 @@ impl Transport for UreqTransport {
             request = request.query(name, value);
         }
         match request.call() {
-            Ok(response) => response.into_string().map_err(|e| TransportError {
-                message: format!("reading response body: {e}"),
-                retryable: true,
-            }),
-            Err(ureq::Error::Status(code, _)) => Err(TransportError {
+            Ok(mut response) => response
+                .body_mut()
+                .with_config()
+                .limit(MAX_BODY_BYTES)
+                .read_to_string()
+                .map_err(|e| TransportError {
+                    message: format!("reading response body: {e}"),
+                    retryable: true,
+                }),
+            Err(ureq::Error::StatusCode(code)) => Err(TransportError {
                 message: format!("HTTP status {code}"),
                 retryable: code == 429 || code >= 500,
             }),
-            Err(ureq::Error::Transport(e)) => Err(TransportError {
-                message: e.to_string(),
+            // Timeouts, connection and protocol errors.
+            Err(error) => Err(TransportError {
+                message: error.to_string(),
                 retryable: true,
             }),
         }
