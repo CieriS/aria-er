@@ -145,8 +145,10 @@ dependencies = [
  "aq-http",
  "chrono",
  "csv",
+ "flate2",
  "serde",
  "serde_json",
+ "tempfile",
  "tracing",
 ]
 

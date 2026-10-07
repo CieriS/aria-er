@@ -12,6 +12,8 @@ pub struct ArpaeConfig {
     pub pollutants_csv_url: String,
     /// Daily air quality bulletins, which carry the type of each station.
     pub bulletin_url: String,
+    /// Directory holding the yearly archive files (`storico_<year>/*.csv[.gz]`).
+    pub archive_dir: String,
     /// Fixed offset of the published timestamps from UTC, in hours.
     pub utc_offset_hours: i32,
     /// Rows requested per datastore query.

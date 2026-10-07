@@ -10,6 +10,9 @@ pub enum SourceError {
         attempts: u32,
         message: String,
     },
+    /// A local file of the source could not be read.
+    #[error("cannot read {path}: {message}")]
+    Io { path: String, message: String },
     /// The response arrived but does not match the documented format.
     #[error("unexpected format in {context}: {message}")]
     Format { context: String, message: String },

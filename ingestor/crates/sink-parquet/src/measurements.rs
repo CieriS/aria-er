@@ -23,7 +23,7 @@ fn schema() -> Arc<Schema> {
         ),
         Field::new("value", DataType::Float64, false),
         Field::new("unit", DataType::Utf8, true),
-        Field::new("validation_flag", DataType::Utf8, false),
+        Field::new("validation_flag", DataType::Utf8, true),
         Field::new("raw_reftime", DataType::Utf8, false),
     ]))
 }
@@ -61,8 +61,8 @@ impl PartitionedRecord for Measurement {
             Arc::new(StringArray::from_iter(
                 rows.iter().map(|m| m.unit.as_deref()),
             )),
-            Arc::new(StringArray::from_iter_values(
-                rows.iter().map(|m| m.validation_flag.as_str()),
+            Arc::new(StringArray::from_iter(
+                rows.iter().map(|m| m.validation_flag.as_deref()),
             )),
             Arc::new(StringArray::from_iter_values(
                 rows.iter().map(|m| m.raw_reftime.as_str()),
@@ -109,7 +109,8 @@ impl PartitionedRecord for Measurement {
                     .ok_or_else(|| schema_error(path, "measured_at out of range"))?,
                 value: value.value(i),
                 unit: (!unit.is_null(i)).then(|| unit.value(i).to_owned()),
-                validation_flag: validation_flag.value(i).to_owned(),
+                validation_flag: (!validation_flag.is_null(i))
+                    .then(|| validation_flag.value(i).to_owned()),
                 raw_reftime: raw_reftime.value(i).to_owned(),
             };
             rows.push(measurement);

@@ -16,7 +16,7 @@ fn measurement(day: u32, hour: u32, month: u32, value: f64, flag: &str) -> Measu
         measured_at: Utc.with_ymd_and_hms(2026, month, day, hour, 0, 0).unwrap(),
         value,
         unit: Some("ug/m3".to_owned()),
-        validation_flag: flag.to_owned(),
+        validation_flag: Some(flag.to_owned()),
         raw_reftime: format!("{month:02}/{day:02}/2026 {:02}:00", hour + 1),
     }
 }

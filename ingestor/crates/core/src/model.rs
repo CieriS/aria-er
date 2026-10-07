@@ -61,7 +61,8 @@ pub struct Measurement {
     /// Unit of `value` as published; `None` if the pollutant is not in the registry.
     pub unit: Option<String>,
     /// Source validation flag, kept verbatim (provisional vs validated).
-    pub validation_flag: String,
+    /// `None` for sources that publish validated data without a flag.
+    pub validation_flag: Option<String>,
     /// Reference time exactly as published by the source.
     pub raw_reftime: String,
 }

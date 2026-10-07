@@ -83,8 +83,14 @@ fn nrt_page_is_parsed_month_first_and_converted_to_utc() {
     assert_eq!(midnight.unit.as_deref(), Some("ug/m3"));
 
     // Provisional and validated rows keep their flag.
-    assert!(page.measurements.iter().any(|m| m.validation_flag == "M"));
-    assert!(page.measurements.iter().any(|m| m.validation_flag == "G"));
+    assert!(page
+        .measurements
+        .iter()
+        .any(|m| m.validation_flag.as_deref() == Some("M")));
+    assert!(page
+        .measurements
+        .iter()
+        .any(|m| m.validation_flag.as_deref() == Some("G")));
 }
 
 #[test]
@@ -153,6 +159,7 @@ fn source(transport: FixtureTransport) -> ArpaeSource<FixtureTransport> {
         stations_csv_url: "http://sheets.test/stations".to_owned(),
         pollutants_csv_url: "http://sheets.test/pollutants".to_owned(),
         bulletin_url: "http://apps.test/bollettini_qa".to_owned(),
+        archive_dir: String::new(),
         utc_offset_hours: 1,
         page_size: 100,
     };
@@ -214,6 +221,7 @@ fn source_rejects_a_resource_id_that_is_not_a_uuid() {
         stations_csv_url: String::new(),
         pollutants_csv_url: String::new(),
         bulletin_url: String::new(),
+        archive_dir: String::new(),
         utc_offset_hours: 1,
         page_size: 100,
     };

@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use aq_core::{DateWindow, Source};
 use aq_http::UreqTransport;
 use aq_sink_parquet::{MeasurementSink, StationSnapshotSink, StationTypeSnapshotSink, WeatherSink};
-use aq_source_arpae::ArpaeSource;
+use aq_source_arpae::{ArpaeArchive, ArpaeSource};
 use aq_source_openmeteo::OpenMeteoSource;
 use chrono::{Duration, NaiveDate, Utc};
 use clap::{Args, Parser, Subcommand};
@@ -31,6 +31,10 @@ struct Cli {
 enum Command {
     /// Ingest ARPAE measurements, the station registry and the station types.
     Run(Window),
+    /// Load the validated ARPAE archive files from the local archive directory.
+    ///
+    /// Without bounds, every year found is loaded.
+    Archive(Window),
     /// Ingest hourly Open-Meteo weather at the coordinates of the ARPAE stations.
     Weather(Window),
 }
@@ -77,6 +81,7 @@ fn main() -> Result<()> {
             let window = resolve(window)?;
             run_arpae(config, window)
         }
+        Command::Archive(window) => run_archive(config, window.from, window.to),
         Command::Weather(window) => {
             let window = resolve(window)?;
             run_weather(config, window)
@@ -152,6 +157,37 @@ fn run_weather(config: Config, window: DateWindow) -> Result<()> {
         updated = weather.report.rows_updated,
         partitions_written = weather.report.partitions_written,
         rows_stored = weather.report.rows_stored,
+        "ingestion completed"
+    );
+    Ok(())
+}
+
+fn run_archive(config: Config, from: Option<NaiveDate>, to: Option<NaiveDate>) -> Result<()> {
+    let archive = ArpaeArchive::new(&config.arpae.archive_dir, config.arpae.utc_offset_hours)
+        .context("configuring ARPAE archive")?;
+    let sink = MeasurementSink::new(config.sink.archive_measurements_dir);
+
+    // One year at a time keeps memory bounded whatever the size of the archive.
+    let (mut fetched, mut inserted, mut updated, mut partitions) = (0, 0, 0, 0);
+    let mut years_loaded = 0;
+    for year in archive.years().context("listing archive years")? {
+        let Some(window) = pipeline::year_window(year, from, to) else {
+            continue;
+        };
+        let loaded = pipeline::ingest(&archive, &sink, window, "archive measurements")?;
+        fetched += loaded.fetched;
+        inserted += loaded.report.rows_inserted;
+        updated += loaded.report.rows_updated;
+        partitions += loaded.report.partitions_written;
+        years_loaded += 1;
+    }
+
+    info!(
+        years = years_loaded,
+        fetched,
+        inserted,
+        updated,
+        partitions_written = partitions,
         "ingestion completed"
     );
     Ok(())
