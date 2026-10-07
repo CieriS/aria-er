@@ -21,6 +21,7 @@ _SUMMARY_FIELDS = (
     "station_rows",
     "station_type_rows",
     "locations",
+    "years",
 )
 
 
@@ -39,22 +40,25 @@ class AqIngestResource(ConfigurableResource):  # type: ignore[type-arg]
     config_path: str
     working_dir: str
 
-    def run(self, first_day: date, last_day: date, command: str = "run") -> IngestSummary:
+    def run(
+        self, first_day: date | None, last_day: date | None, command: str = "run"
+    ) -> IngestSummary:
         """Runs an `aq-ingest` subcommand on the inclusive window.
 
-        `run` ingests ARPAE, `weather` ingests Open-Meteo. Raises `Failure` with the
-        ingestor log on error.
+        `run` ingests ARPAE, `weather` ingests Open-Meteo, `archive` loads the local
+        archive files. Without days the subcommand uses its own default window (for
+        `archive`, everything). Raises `Failure` with the ingestor log on error.
         """
         argv = [
             self.binary_path,
             "--config",
             self.config_path,
             command,
-            "--from",
-            first_day.isoformat(),
-            "--to",
-            last_day.isoformat(),
         ]
+        if first_day is not None:
+            argv += ["--from", first_day.isoformat()]
+        if last_day is not None:
+            argv += ["--to", last_day.isoformat()]
         try:
             completed = subprocess.run(
                 argv,
@@ -76,7 +80,7 @@ class AqIngestResource(ConfigurableResource):  # type: ignore[type-arg]
             raise Failure(
                 description=(
                     f"aq-ingest {command} failed with exit code {completed.returncode} "
-                    f"for {first_day}..{last_day}"
+                    f"for {first_day or 'start'}..{last_day or 'end'}"
                 ),
                 metadata={
                     "command": " ".join(argv),

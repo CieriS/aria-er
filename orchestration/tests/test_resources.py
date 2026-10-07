@@ -57,6 +57,14 @@ def test_ingest_can_run_the_weather_subcommand(tmp_path: Path) -> None:
     assert (tmp_path / "args.txt").read_text().split()[2] == "weather"
 
 
+def test_ingest_without_days_lets_the_subcommand_choose_its_window(tmp_path: Path) -> None:
+    resource = fake_binary(tmp_path, 'echo "$@" > args.txt')
+
+    resource.run(None, None, command="archive")
+
+    assert (tmp_path / "args.txt").read_text().split() == ["--config", "config.toml", "archive"]
+
+
 def test_ingest_failure_carries_the_ingestor_log(tmp_path: Path) -> None:
     resource = fake_binary(
         tmp_path, "echo 'Error: fetching measurements: HTTP status 502' >&2\nexit 1"
