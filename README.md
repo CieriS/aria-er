@@ -144,10 +144,11 @@ make down    # stop them; data stays in the Docker volumes
 | `orchestration` | http://localhost:3000 | Dagster with the dbt project and the `aq-ingest` binary |
 | `dashboard` | http://localhost:8501 | Streamlit |
 
-On a fresh clone the volumes are empty and the dashboard says so. To load data, open
-Dagster, choose *Materialize all* on the asset graph and pick a range of days (or wait for
-the 06:00 schedule): ingestion, dbt and the checks run inside the container, and the
-dashboard shows the result. A one-off ingestion without Dagster is also available:
+On a fresh clone the volumes are empty and the stack fills them on its own: a Dagster
+sensor notices that there is no warehouse, loads the archive, then ingests the last 30
+days and builds the models. About five minutes after `make up` the dashboard shows ten
+years of data; until then it says that the warehouse is not there yet. A one-off ingestion
+without Dagster is also available:
 
 ```bash
 docker compose run --rm ingestor run --from 2026-08-01 --to 2026-08-31
@@ -345,6 +346,10 @@ downstream of them.
 - **Schedule** `reprocess_provisional_window`: every day at 06:00 Europe/Rome it re-ingests
   the last 30 days, the window in which ARPAE may still revise data, and rebuilds the models.
   It is on by default; it only fires while the daemon (`make orchestrate`) is running.
+- **Sensor** `bootstrap_empty_warehouse`: on an installation without a warehouse it launches
+  the archive load and then the refresh of the last 30 days, one step per minute, and does
+  nothing afterwards. Each step is launched at most once a day, so a failing step is not
+  retried in a loop.
 - **Retries**: the ingestion step is retried twice with exponential backoff, on top of the
   HTTP retries inside the ingestor. On failure the run shows the exit code and the last lines
   of the ingestor log.
