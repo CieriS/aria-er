@@ -1,5 +1,9 @@
 # aria-er
 
+[![Rust](https://github.com/CieriS/aria-er/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/CieriS/aria-er/actions/workflows/rust.yml)
+[![Python](https://github.com/CieriS/aria-er/actions/workflows/python.yml/badge.svg?branch=main)](https://github.com/CieriS/aria-er/actions/workflows/python.yml)
+[![dbt](https://github.com/CieriS/aria-er/actions/workflows/dbt.yml/badge.svg?branch=main)](https://github.com/CieriS/aria-er/actions/workflows/dbt.yml)
+
 End-to-end data platform for air quality in Emilia-Romagna, Italy, built on
 [ARPAE](https://www.arpae.it) open data and enriched with weather data from Open-Meteo.
 
@@ -28,10 +32,9 @@ historized and tested dataset that answers questions like:
 
 ## Status
 
-🚧 Work in progress — phases 0 (data exploration), 1 (Rust ingestor), 2 (dbt models on
-DuckDB), 3 (Dagster orchestration), 4 (Open-Meteo weather) and 5 (Streamlit dashboard) are
-complete.
-See the roadmap below.
+🚧 Work in progress — phases 0 to 6 are complete (exploration, Rust ingestor, dbt models,
+Dagster orchestration, Open-Meteo weather, Streamlit dashboard, containers and CI). See the
+roadmap below.
 
 ## How to run
 
@@ -412,6 +415,35 @@ the expected warning, the source being stale at the time.
 
 Legal limits (Italian D.Lgs. 155/2010) will live in a dbt seed, never hardcoded.
 
+## Continuous integration
+
+Three workflows run on every pull request and on every push to `main`, each with its
+dependency cache:
+
+| Workflow | Checks |
+|---|---|
+| [Rust](.github/workflows/rust.yml) | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` |
+| [Python](.github/workflows/python.yml) | `ruff format --check`, `ruff check`, `mypy --strict`, `pytest`, for `orchestration` and `dashboard` |
+| [dbt](.github/workflows/dbt.yml) | `dbt build` on DuckDB with the committed fixtures, twice (full and incremental) |
+
+No workflow calls ARPAE or Open-Meteo: sources are mocked behind traits in Rust, and dbt
+reads `transform/fixtures/`. `make transform-fixtures` runs the dbt job locally. Actions are
+pinned by commit, and Dependabot proposes weekly updates for actions, crates, Python
+packages and base images.
+
+### Branch protection
+
+`main` only changes through pull requests that pass the CI. The rule to set under
+*Settings → Rules → Rulesets* (target: default branch):
+
+- **Require a pull request before merging** (no direct pushes to `main`).
+- **Require status checks to pass**, with the branch up to date, for these checks:
+  `fmt, clippy, test`, `orchestration (ruff, mypy, pytest)`, `dashboard (ruff, mypy, pytest)`
+  and `dbt build on fixtures (DuckDB)`.
+- **Block force pushes** and branch deletion.
+
+Approvals are not required: this is a single-maintainer repository, so the gate is the CI.
+
 ## Roadmap
 
 - [x] **0. Exploration** — one year of Bologna data, schema and quality issues documented
@@ -420,7 +452,7 @@ Legal limits (Italian D.Lgs. 155/2010) will live in a dbt seed, never hardcoded.
 - [x] **3. Orchestration** — Dagster daily schedule and backfills
 - [x] **4. Second source** — Open-Meteo + `mart_weather_correlation`
 - [x] **5. Dashboard** — Streamlit
-- [ ] **6. Full CI** + Docker Compose
+- [x] **6. Full CI** + Docker Compose
 - [ ] **7. Cloud** — GCS + BigQuery via Terraform, same dbt models with a different target
 - [ ] **8. (Optional) Streaming** — only if justified in an ADR
 
