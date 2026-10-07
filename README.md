@@ -51,12 +51,14 @@ make test                                     # Rust tests (no network) + dbt bu
 make lint                                     # cargo fmt + clippy, ruff + mypy --strict
 ```
 
-`make ingest` runs `aq-ingest run` and then `aq-ingest weather`, both taking
+`make ingest` runs `aq-ingest run`, `aq-ingest weather` and `aq-ingest archive`, all taking
 `[--from YYYY-MM-DD] [--to YYYY-MM-DD]`. The first downloads the station registry and the
-measurements of the window, the second the hourly weather at the station coordinates:
+measurements of the window, the second the hourly weather at the station coordinates, the
+third loads the validated archive files found in `data/samples/arpae/`:
 
 ```
 raw/arpae/measurements/year=YYYY/month=MM/part-0.parquet
+raw/arpae/measurements_archive/year=YYYY/month=MM/part-0.parquet
 raw/arpae/stations/extracted_on=YYYY-MM-DD/stations.parquet
 raw/arpae/station_types/extracted_on=YYYY-MM-DD/station_types.parquet
 raw/openmeteo/weather/year=YYYY/month=MM/part-0.parquet
@@ -166,7 +168,7 @@ least once.
 | Layer | Model | Content |
 |---|---|---|
 | staging | `stg_arpae__measurements` | Near-real-time rows: typed, UTC timestamp, value in µg/m³ |
-| staging | `stg_arpae__measurements_historical` | Validated archive CSVs aligned to the same key |
+| staging | `stg_arpae__measurements_archive` | Validated archive measurements, same shape as the near-real-time ones |
 | staging | `stg_arpae__stations` | Latest extraction of the station registry |
 | staging | `stg_arpae__station_types` | Traffic or background, and area type, from the ARPAE daily bulletin |
 | snapshot | `snap_arpae__stations` | Type 2 history of the registry |
@@ -330,8 +332,10 @@ pipeline: the two raw assets written by `aq-ingest`, then every dbt seed, snapsh
 downstream of them.
 
 - **Ingestion assets** (`arpae_raw/measurements`, `arpae_raw/stations`,
-  `arpae_raw/station_types`, `openmeteo_raw/weather`): run the `aq-ingest` binary (`run` and `weather` subcommands)
-  for the selected days. No ingestion logic is duplicated in Python. The counters
+  `arpae_raw/station_types`, `openmeteo_raw/weather`): run the `aq-ingest` binary (`run` and
+  `weather` subcommands) for the selected days. `arpae_raw/measurements_archive` loads the
+  local archive files with `aq-ingest archive`; it is not partitioned and has its own job,
+  `arpae_archive_load`. No ingestion logic is duplicated in Python. The counters
   of the run (fetched, inserted, updated rows) are attached to the materialization.
 - **dbt assets**: loaded from the dbt manifest with `dagster-dbt`; dbt sources and the raw
   assets share the same keys, which is what connects the lineage. dbt tests appear as asset checks.
@@ -374,10 +378,11 @@ the expected warning, the source being stale at the time.
 
 ## Design decisions (phase 2)
 
-- **Archive read by dbt for now** ([ADR 0003](docs/adr/0003-historical-archive-read-by-dbt.md)).
-  Yearly counts need a full year, which only the validated archive has. Until the ingestor
-  can backfill it, a staging model reads the sample CSVs directly; the archive wins over
-  the near-real-time feed for the same key.
+- **The validated archive wins over the near-real-time feed** for the same key. Yearly
+  counts need full years, which only the archive has. It was first read by dbt straight
+  from CSV ([ADR 0003](docs/adr/0003-historical-archive-read-by-dbt.md)); it is now loaded by
+  the ingestor into its own raw dataset
+  ([ADR 0005](docs/adr/0005-archive-loaded-by-the-ingestor.md)).
 - **One incremental fact, `delete+insert` on the natural key.** Aggregates on top are
   plain tables: at this volume a full rebuild takes under a second, and incremental
   aggregates would have to handle late revisions.
@@ -439,7 +444,7 @@ the expected warning, the source being stale at the time.
 - **The orchestration image carries the binary and the dbt project**, because Dagster calls
   both. The ingestor image exists on its own for one-off runs and as the minimal artifact.
 - **Named volumes, not bind mounts**, so a clone needs no local directories or permissions.
-- **dbt in CI runs on committed fixtures** (a 76 KB real slice written with the ingestor's
+- **dbt in CI runs on committed fixtures** (a small real slice written with the ingestor's
   schema), built twice to cover the incremental path, with no network.
 
 ## Planned marts
@@ -521,18 +526,18 @@ Makefile              ingest / transform / orchestrate / backfill / dashboard / 
 
 ## Known limitations
 
-- **No historical backfill yet.** Only the near-real-time datastore (last ~7 weeks) is ingested. The
-  historical archive is hosted on Google Drive without a stable API (the file list is an HTML page);
-  a window older than the datastore retention simply returns no rows.
+- **The archive is loaded from local files, not downloaded.** It is hosted on Google Drive without a
+  stable API (the file list is an HTML page), so new files are added to `data/samples/arpae/` by
+  hand. The near-real-time datastore only holds the last ~7 weeks.
 - **The source can be stale.** On 2026-10-01 the newest measurement in the datastore was dated
   2026-09-17. The ingestor does not alert on freshness yet.
 - Rows deleted upstream are not removed from the raw layer (upsert only), and previous values of
   revised rows are not kept.
-- **Archive data is a sample**, read from CSVs in the repository: 2025 PM10, PM2.5 and NO2 for the
+- **Archive data is a sample** of the files kept in the repository: 2025 PM10, PM2.5 and NO2 for the
   46 traffic and background stations of the region; every pollutant for 2025 and PM10, PM2.5, NO2
   and O3 for 2016–2024 for the three Bologna stations. 2026 covers August only.
   January–July 2026 is missing from every source and shows as empty days in `mart_data_completeness`.
-- Archive files older than the 30-day lookback need `dbt build --full-refresh` to be loaded.
+- Archive rows older than the 30-day lookback need `dbt build --full-refresh` to reach the marts.
 - An 8-hour window ending on a missing hour is not produced; days with many gaps may lack a few windows.
 - Station types follow the latest ARPAE bulletin; their history is kept in raw (one snapshot per
   day) but not yet modelled as a type 2 dimension.
