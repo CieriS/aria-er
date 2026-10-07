@@ -11,8 +11,6 @@ macro-paths: ["macros"]
 vars:
   # Raw layer written by the ingestor, relative to this directory.
   raw_dir: "../raw"
-  # Validated yearly CSVs from the ARPAE archive (not yet loaded by the ingestor).
-  historical_dir: "../data/samples/arpae"
   # Offset of ARPAE local standard time from UTC; legal days are counted in this time.
   local_utc_offset_hours: 1
   # Must cover the ingestor reprocessing window (run.reprocess_window_days).
