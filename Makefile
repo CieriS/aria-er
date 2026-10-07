@@ -24,6 +24,16 @@ transform:
 	$(DBT) build --profiles-dir .
 	$(DBT) source freshness --profiles-dir .
 
+# dbt build on the committed fixtures, in a throwaway database: no network, no raw/ needed.
+# Runs twice so that the incremental path is exercised too. This is what the CI runs.
+.PHONY: transform-fixtures
+FIXTURE_DB := $(or $(RUNNER_TEMP),/tmp)/aria_er_fixtures.duckdb
+FIXTURE_VARS := {raw_dir: fixtures/raw, historical_dir: fixtures/historical}
+transform-fixtures:
+	rm -f $(FIXTURE_DB)
+	cd transform && AQ_DUCKDB_PATH=$(FIXTURE_DB) uv run dbt build --profiles-dir . --vars '$(FIXTURE_VARS)'
+	cd transform && AQ_DUCKDB_PATH=$(FIXTURE_DB) uv run dbt build --profiles-dir . --vars '$(FIXTURE_VARS)'
+
 # Dagster UI on http://localhost:3000, with the daemon that runs schedules and backfills.
 orchestrate: build
 	mkdir -p $(DAGSTER_HOME)
