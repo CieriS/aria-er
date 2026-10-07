@@ -3,7 +3,7 @@
 # --- dependencies: a virtual environment with Streamlit ---
 FROM python:3.12-slim-bookworm AS dependencies
 COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+ENV UV_LINK_MODE=copy
 WORKDIR /app/dashboard
 COPY dashboard/pyproject.toml dashboard/uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
