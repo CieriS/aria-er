@@ -1,0 +1,53 @@
+# Local stack: Dagster (ingestion + dbt) and the dashboard, sharing the raw layer
+# and the DuckDB warehouse through named volumes.
+name: aria-er
+
+services:
+  orchestration:
+    build:
+      context: .
+      dockerfile: docker/orchestration.Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - raw:/app/raw
+      - warehouse:/app/warehouse
+      - dagster_home:/app/dagster_home
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/server_info')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/dashboard.Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      # The dashboard only reads the warehouse; DuckDB still needs a writable directory.
+      - warehouse:/app/warehouse
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  # One-off ingestion from the command line, without Dagster:
+  #   docker compose run --rm ingestor run --from 2026-08-01 --to 2026-08-31
+  ingestor:
+    build:
+      context: .
+      dockerfile: docker/ingestor.Dockerfile
+    profiles: ["tools"]
+    volumes:
+      - raw:/app/raw
+
+volumes:
+  raw:
+  warehouse:
+  dagster_home:

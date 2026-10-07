@@ -1,0 +1,17 @@
+# Keep build contexts small and free of local state.
+.git
+.github
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+ingestor/target
+transform/target
+transform/logs
+orchestration/.dagster_home
+raw
+warehouse
+scratch
+docs
+*.md

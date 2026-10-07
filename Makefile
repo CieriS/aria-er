@@ -52,3 +52,13 @@ lint:
 	cargo clippy $(MANIFEST) --all-targets -- -D warnings
 	cd orchestration && uv run ruff format --check . && uv run ruff check . && uv run mypy
 	cd dashboard && uv run ruff format --check . && uv run ruff check . && uv run mypy
+
+# The whole system in containers: Dagster on http://localhost:3000, dashboard on
+# http://localhost:8501. Data lives in Docker volumes and survives `make down`.
+.PHONY: up down
+up:
+	docker compose up --build --detach --wait
+	@echo "Dagster: http://localhost:3000  -  dashboard: http://localhost:8501"
+
+down:
+	docker compose down
