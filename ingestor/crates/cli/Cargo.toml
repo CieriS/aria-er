@@ -19,7 +19,7 @@ aq-source-openmeteo.workspace = true
 chrono.workspace = true
 clap = { version = "4", features = ["derive", "env"] }
 serde.workspace = true
-toml = "0.8"
+toml = "1.1"
 tracing.workspace = true
 tracing-subscriber = { version = "0.3", features = ["json"] }
 

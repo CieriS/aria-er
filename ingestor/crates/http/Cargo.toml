@@ -9,4 +9,4 @@ publish.workspace = true
 aq-core.workspace = true
 serde.workspace = true
 tracing.workspace = true
-ureq = "2"
+ureq = "3"
