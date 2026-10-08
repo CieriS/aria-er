@@ -46,6 +46,20 @@ pub fn resolve_window(
     }
 }
 
+/// The part of calendar year `year` inside the optional bounds, if any.
+pub fn year_window(
+    year: i32,
+    from: Option<NaiveDate>,
+    to: Option<NaiveDate>,
+) -> Option<DateWindow> {
+    let first = NaiveDate::from_ymd_opt(year, 1, 1)?;
+    let last = NaiveDate::from_ymd_opt(year, 12, 31)?;
+    DateWindow::new(
+        from.map_or(first, |f| f.max(first)),
+        to.map_or(last, |t| t.min(last)),
+    )
+}
+
 /// Weather locations covering the stations of the registry that have coordinates.
 pub fn weather_locations(sensors: &[StationSensor], coordinate_decimals: u32) -> Vec<Location> {
     let coordinates = sensors
@@ -108,7 +122,7 @@ mod tests {
             measured_at: Utc.with_ymd_and_hms(2026, 8, 5, hour, 0, 0).unwrap(),
             value,
             unit: Some("ug/m3".to_owned()),
-            validation_flag: flag.to_owned(),
+            validation_flag: Some(flag.to_owned()),
             raw_reftime: format!("08/05/2026 {:02}:00", hour + 1),
         }
     }
@@ -187,6 +201,20 @@ mod tests {
         assert_eq!((window.from(), window.to()), (day(6), day(10)));
 
         assert!(resolve_window(Some(day(10)), Some(day(1)), day(31), 30).is_err());
+    }
+
+    #[test]
+    fn year_window_clips_a_year_to_the_requested_bounds() {
+        let full = year_window(2025, None, None).unwrap();
+        assert_eq!(full.from(), NaiveDate::from_ymd_opt(2025, 1, 1).unwrap());
+        assert_eq!(full.to(), NaiveDate::from_ymd_opt(2025, 12, 31).unwrap());
+
+        let clipped = year_window(2026, Some(day(5)), Some(day(10))).unwrap();
+        assert_eq!((clipped.from(), clipped.to()), (day(5), day(10)));
+
+        // Years entirely outside the bounds are skipped.
+        assert!(year_window(2025, Some(day(5)), None).is_none());
+        assert!(year_window(2027, None, Some(day(10))).is_none());
     }
 
     #[test]

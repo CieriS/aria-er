@@ -24,6 +24,7 @@ pub struct Config {
 #[serde(deny_unknown_fields)]
 pub struct SinkConfig {
     pub measurements_dir: PathBuf,
+    pub archive_measurements_dir: PathBuf,
     pub stations_dir: PathBuf,
     pub station_types_dir: PathBuf,
     pub weather_dir: PathBuf,

@@ -107,7 +107,7 @@ fn nrt_measurement(
         measured_at,
         value,
         unit: units.get(&pollutant_id).cloned(),
-        validation_flag: record.v_flag,
+        validation_flag: Some(record.v_flag),
         raw_reftime: record.reftime,
     })
 }
