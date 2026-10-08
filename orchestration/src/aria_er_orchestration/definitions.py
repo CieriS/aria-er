@@ -12,6 +12,7 @@ from aria_er_orchestration.checks import raw_measurements_freshness, recent_data
 from aria_er_orchestration.resources import AqIngestResource, WarehouseResource
 from aria_er_orchestration.schedules import (
     archive_job,
+    bootstrap_empty_warehouse,
     refresh_job,
     reprocess_provisional_window,
 )
@@ -22,6 +23,7 @@ defs = Definitions(
     asset_checks=[raw_measurements_freshness, recent_data_completeness],
     jobs=[refresh_job, archive_job],
     schedules=[reprocess_provisional_window],
+    sensors=[bootstrap_empty_warehouse],
     resources={
         "aq_ingest": AqIngestResource(
             binary_path=str(SETTINGS.ingest_binary),
