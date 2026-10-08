@@ -1,6 +1,6 @@
 # 0003 — Historical archive read by dbt until the ingestor supports backfill
 
-Status: accepted (phase 2), to be superseded
+Status: superseded by [0005](0005-archive-loaded-by-the-ingestor.md)
 
 ## Context
 

@@ -13,10 +13,12 @@ DAGSTER := cd orchestration && DAGSTER_HOME=$(DAGSTER_HOME) uv run dagster
 build:
 	cargo build $(MANIFEST) --release --bin aq-ingest
 
-# ARPAE measurements and registry, then Open-Meteo weather, for the same window.
+# ARPAE measurements and registry, then Open-Meteo weather, for the same window;
+# then the whole local archive (a no-op when nothing changed).
 ingest: build
 	ingestor/target/release/aq-ingest --config $(CONFIG) run $(WINDOW)
 	ingestor/target/release/aq-ingest --config $(CONFIG) weather $(WINDOW)
+	ingestor/target/release/aq-ingest --config $(CONFIG) archive
 
 # Builds seeds, snapshots, models and runs their tests, then reports source freshness.
 transform:
@@ -28,7 +30,7 @@ transform:
 # Runs twice so that the incremental path is exercised too. This is what the CI runs.
 .PHONY: transform-fixtures
 FIXTURE_DB := $(or $(RUNNER_TEMP),/tmp)/aria_er_fixtures.duckdb
-FIXTURE_VARS := {raw_dir: fixtures/raw, historical_dir: fixtures/historical}
+FIXTURE_VARS := {raw_dir: fixtures/raw}
 transform-fixtures:
 	rm -f $(FIXTURE_DB)
 	cd transform && AQ_DUCKDB_PATH=$(FIXTURE_DB) uv run dbt build --profiles-dir . --vars '$(FIXTURE_VARS)'
@@ -39,11 +41,13 @@ orchestrate: build
 	mkdir -p $(DAGSTER_HOME)
 	$(DAGSTER) dev -m aria_er_orchestration.definitions
 
-# Ingestion + dbt for a range of days, as one run: make backfill FROM=2026-08-01 TO=2026-08-31
+# The local archive first, then ingestion + dbt for a range of days as one run:
+# make backfill FROM=2026-08-01 TO=2026-08-31
 backfill: build
 	@test -n "$(FROM)" -a -n "$(TO)" || (echo "usage: make backfill FROM=YYYY-MM-DD TO=YYYY-MM-DD" && exit 1)
 	mkdir -p $(DAGSTER_HOME)
-	$(DAGSTER) asset materialize -m aria_er_orchestration.definitions --select '*' --partition-range $(FROM)...$(TO)
+	$(DAGSTER) job execute -m aria_er_orchestration.definitions -j arpae_archive_load
+	$(DAGSTER) asset materialize -m aria_er_orchestration.definitions --select 'not key:"arpae_raw/measurements_archive"' --partition-range $(FROM)...$(TO)
 
 # Streamlit dashboard on http://localhost:8501, reading the marts built by `make transform`.
 dashboard:

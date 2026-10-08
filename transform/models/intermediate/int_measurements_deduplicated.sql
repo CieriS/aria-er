@@ -30,9 +30,9 @@ with unioned as (
         value_original,
         unit_original,
         null as validation_flag,
-        'historical' as source_name,
+        'archive' as source_name,
         1 as source_priority
-    from {{ ref('stg_arpae__measurements_historical') }}
+    from {{ ref('stg_arpae__measurements_archive') }}
 
 ),
 

@@ -7,6 +7,7 @@ from dagster._core.definitions.unresolved_asset_job_definition import (
 )
 
 from aria_er_orchestration.assets import (
+    RAW_ARCHIVE,
     RAW_MEASUREMENTS,
     RAW_STATION_TYPES,
     RAW_STATIONS,
@@ -49,6 +50,14 @@ def test_station_types_feed_the_traffic_vs_background_mart() -> None:
     assert {RAW_STATION_TYPES, RAW_MEASUREMENTS} <= ancestors
 
 
+def test_archive_is_upstream_of_the_measurements_fact() -> None:
+    graph = defs.resolve_asset_graph()
+
+    assert graph.get(AssetKey(["stg_arpae__measurements_archive"])).parent_keys == {RAW_ARCHIVE}
+    fact = graph.get(AssetKey(["int_measurements_deduplicated"]))
+    assert AssetKey(["stg_arpae__measurements_archive"]) in fact.parent_keys
+
+
 def test_weather_is_upstream_of_the_correlation_mart() -> None:
     graph = defs.resolve_asset_graph()
 
@@ -57,10 +66,12 @@ def test_weather_is_upstream_of_the_correlation_mart() -> None:
     assert {RAW_WEATHER, RAW_MEASUREMENTS, RAW_STATIONS} <= ancestors
 
 
-def test_every_materializable_asset_is_daily_partitioned() -> None:
+def test_every_asset_but_the_archive_is_daily_partitioned() -> None:
     graph = defs.resolve_asset_graph()
-    for key in graph.materializable_asset_keys:
+    for key in graph.materializable_asset_keys - {RAW_ARCHIVE}:
         assert graph.get(key).partitions_def == daily_partitions, key
+    # The archive is a fixed set of files, loaded as a whole.
+    assert graph.get(RAW_ARCHIVE).partitions_def is None
 
 
 def test_ingestion_has_a_retry_policy() -> None:
@@ -121,3 +132,12 @@ def test_schedule_is_on_by_default_and_targets_the_refresh_job() -> None:
     assert schedule.default_status.value == "RUNNING"
     assert schedule.job_name == "arpae_refresh"
     assert isinstance(schedule.job, UnresolvedAssetJobDefinition)
+
+
+def test_archive_has_its_own_job_and_stays_out_of_the_daily_refresh() -> None:
+    refresh = defs.resolve_job_def("arpae_refresh")
+    archive = defs.resolve_job_def("arpae_archive_load")
+
+    assert RAW_ARCHIVE not in refresh.asset_layer.executable_asset_keys
+    assert RAW_MEASUREMENTS in refresh.asset_layer.executable_asset_keys
+    assert archive.asset_layer.executable_asset_keys == {RAW_ARCHIVE}

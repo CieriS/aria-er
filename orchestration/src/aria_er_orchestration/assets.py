@@ -22,6 +22,7 @@ from aria_er_orchestration.settings import SETTINGS
 
 # Same keys dagster-dbt gives to the dbt sources, so the lineage connects.
 RAW_MEASUREMENTS = AssetKey(["arpae_raw", "measurements"])
+RAW_ARCHIVE = AssetKey(["arpae_raw", "measurements_archive"])
 RAW_STATIONS = AssetKey(["arpae_raw", "stations"])
 RAW_STATION_TYPES = AssetKey(["arpae_raw", "station_types"])
 RAW_WEATHER = AssetKey(["openmeteo_raw", "weather"])
@@ -102,6 +103,26 @@ def arpae_raw(
             {"rows": counters["station_type_rows"]} if "station_type_rows" in counters else {}
         ),
     )
+
+
+@asset(
+    key=RAW_ARCHIVE,
+    description="Validated ARPAE archive files loaded as partitioned Parquet (raw layer).",
+    group_name="ingestion",
+    kinds={"rust", "parquet"},
+)
+def arpae_raw_archive(
+    context: AssetExecutionContext, aq_ingest: AqIngestResource
+) -> MaterializeResult[Any]:
+    """Runs `aq-ingest archive` on every archive file found locally.
+
+    Not partitioned: the archive is a fixed set of yearly files, and the upsert
+    rewrites nothing when they have not changed.
+    """
+    context.log.info("Running aq-ingest archive")
+    summary = aq_ingest.run(None, None, command="archive")
+    context.log.info("aq-ingest log:\n%s", summary.log)
+    return MaterializeResult(metadata=dict(summary.counters))
 
 
 @asset(
