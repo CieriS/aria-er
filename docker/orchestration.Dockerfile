@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # --- dependencies: a virtual environment with Dagster and dbt ---
 FROM python:3.12-slim-bookworm AS dependencies
 COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+ENV UV_LINK_MODE=copy
 WORKDIR /app/orchestration
 COPY orchestration/pyproject.toml orchestration/uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \

@@ -560,8 +560,8 @@ Makefile              ingest / transform / orchestrate / backfill / dashboard / 
 - DuckDB allows one writer: while a dbt build is running the dashboard waits up to 15 seconds
   for it, then asks to reload.
 - Dashboard texts are in English and dates are shown as stored (calendar days in ARPAE standard time).
-- The Python images are large (about 0.9 GB each): Dagster, dbt and Streamlit pull in heavy
-  dependencies and no effort was made to slim them.
+- The Python images stay large (about 0.8 GB unpacked, under 0.2 GB to pull): most of it is
+  pyarrow, pandas, DuckDB and Dagster themselves. Not precompiling bytecode saved about 10%.
 - The container stack keeps Dagster's run history in SQLite on a volume: fine for one machine,
   not for several workers.
 - Single writer: two concurrent runs on the same partition would race.
