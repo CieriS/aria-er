@@ -10,15 +10,16 @@ mod partitioned;
 mod snapshot;
 mod station_types;
 mod stations;
+mod storage;
 mod weather;
 
-use std::fs::{self, File};
 use std::path::Path;
 use std::sync::Arc;
 
 use aq_core::{Measurement, SinkError, StationSensor, StationType, WeatherObservation};
 use arrow_array::RecordBatch;
 use arrow_schema::Schema;
+use bytes::Bytes;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use parquet::arrow::ArrowWriter;
 use parquet::basic::Compression;
@@ -26,6 +27,9 @@ use parquet::file::properties::WriterProperties;
 
 pub use partitioned::{PartitionedRecord, PartitionedSink};
 pub use snapshot::{SnapshotRecord, SnapshotSink};
+#[cfg(feature = "gcs")]
+pub use storage::object::{GcsStorage, ObjectStorage};
+pub use storage::{LocalStorage, Storage};
 
 /// Sink for ARPAE measurements.
 pub type MeasurementSink = PartitionedSink<Measurement>;
@@ -35,13 +39,6 @@ pub type StationSnapshotSink = SnapshotSink<StationSensor>;
 pub type StationTypeSnapshotSink = SnapshotSink<StationType>;
 /// Sink for hourly weather observations.
 pub type WeatherSink = PartitionedSink<WeatherObservation>;
-
-fn io_error(path: &Path, source: std::io::Error) -> SinkError {
-    SinkError::Io {
-        path: path.display().to_string(),
-        source,
-    }
-}
 
 fn parquet_error(path: &Path, error: impl std::fmt::Display) -> SinkError {
     SinkError::Parquet {
@@ -57,36 +54,33 @@ fn schema_error(path: &Path, message: impl Into<String>) -> SinkError {
     }
 }
 
-/// Reads every record batch of `path`.
-fn read_batches(path: &Path) -> Result<Vec<RecordBatch>, SinkError> {
-    let file = File::open(path).map_err(|e| io_error(path, e))?;
-    let reader = ParquetRecordBatchReaderBuilder::try_new(file)
+/// Reads every record batch of the file at `path`; `None` when it does not exist.
+fn read_batches(storage: &dyn Storage, path: &Path) -> Result<Option<Vec<RecordBatch>>, SinkError> {
+    let Some(data) = storage.read(path)? else {
+        return Ok(None);
+    };
+    let reader = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(data))
         .and_then(|builder| builder.build())
         .map_err(|e| parquet_error(path, e))?;
     reader
         .collect::<Result<Vec<_>, _>>()
+        .map(Some)
         .map_err(|e| parquet_error(path, e))
 }
 
-/// Writes `batch` to `path` atomically: a reader sees the old file or the new one.
-fn write_atomically(
+/// Serialises `batch` as Parquet and stores it at `path`, replacing the file as a whole.
+fn write_parquet(
+    storage: &dyn Storage,
     path: &Path,
     schema: Arc<Schema>,
     batch: &RecordBatch,
 ) -> Result<(), SinkError> {
-    let dir = path
-        .parent()
-        .ok_or_else(|| schema_error(path, "path has no parent directory"))?;
-    fs::create_dir_all(dir).map_err(|e| io_error(dir, e))?;
-
-    let tmp = path.with_extension("parquet.tmp");
-    let file = File::create(&tmp).map_err(|e| io_error(&tmp, e))?;
     let properties = WriterProperties::builder()
         .set_compression(Compression::SNAPPY)
         .build();
-    let mut writer =
-        ArrowWriter::try_new(file, schema, Some(properties)).map_err(|e| parquet_error(&tmp, e))?;
-    writer.write(batch).map_err(|e| parquet_error(&tmp, e))?;
-    writer.close().map_err(|e| parquet_error(&tmp, e))?;
-    fs::rename(&tmp, path).map_err(|e| io_error(path, e))
+    let mut writer = ArrowWriter::try_new(Vec::new(), schema, Some(properties))
+        .map_err(|e| parquet_error(path, e))?;
+    writer.write(batch).map_err(|e| parquet_error(path, e))?;
+    let data = writer.into_inner().map_err(|e| parquet_error(path, e))?;
+    storage.write(path, data)
 }

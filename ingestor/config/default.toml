@@ -32,6 +32,10 @@ max_attempts = 5
 initial_backoff_ms = 1000
 
 [sink]
+# "local" writes under the directories below; "gcs" uses them as object prefixes in
+# `gcs_bucket` (needs a binary built with `--features gcs`).
+storage = "local"
+gcs_bucket = ""
 measurements_dir = "raw/arpae/measurements"
 archive_measurements_dir = "raw/arpae/measurements_archive"
 stations_dir = "raw/arpae/stations"

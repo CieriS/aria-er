@@ -9,6 +9,10 @@ publish.workspace = true
 name = "aq-ingest"
 path = "src/main.rs"
 
+[features]
+# Lets `sink.storage = "gcs"` write the raw layer to Google Cloud Storage.
+gcs = ["aq-sink-parquet/gcs"]
+
 [dependencies]
 anyhow = "1"
 aq-core.workspace = true

@@ -9,7 +9,7 @@ use arrow_schema::Schema;
 use chrono::{DateTime, Datelike, Utc};
 use tracing::{debug, info};
 
-use crate::{parquet_error, read_batches, write_atomically};
+use crate::{parquet_error, read_batches, write_parquet, LocalStorage, Storage};
 
 const PARTITION_FILE: &str = "part-0.parquet";
 
@@ -33,13 +33,21 @@ pub trait PartitionedRecord: Clone + PartialEq {
 
 /// Upserting sink writing `year=YYYY/month=MM/part-0.parquet` under a root directory.
 pub struct PartitionedSink<R> {
+    storage: Arc<dyn Storage>,
     root: PathBuf,
     record: PhantomData<R>,
 }
 
 impl<R> PartitionedSink<R> {
+    /// A sink on the local filesystem.
     pub fn new(root: impl Into<PathBuf>) -> Self {
+        Self::with_storage(Arc::new(LocalStorage), root)
+    }
+
+    /// A sink on any storage; `root` is the prefix of every file.
+    pub fn with_storage(storage: Arc<dyn Storage>, root: impl Into<PathBuf>) -> Self {
         Self {
+            storage,
             root: root.into(),
             record: PhantomData,
         }
@@ -71,8 +79,8 @@ impl<R: PartitionedRecord> Sink for PartitionedSink<R> {
         for (partition, new_rows) in incoming {
             let path = self.partition_path(partition);
             let mut rows: BTreeMap<R::Key, R> = BTreeMap::new();
-            if path.exists() {
-                for batch in read_batches(&path)? {
+            if let Some(batches) = read_batches(self.storage.as_ref(), &path)? {
+                for batch in batches {
                     for row in R::from_batch(&batch, &path)? {
                         rows.insert(row.key(), row);
                     }
@@ -100,7 +108,7 @@ impl<R: PartitionedRecord> Sink for PartitionedSink<R> {
             let ordered: Vec<&R> = rows.values().collect();
             let batch = RecordBatch::try_new(R::schema(), R::to_columns(&ordered))
                 .map_err(|e| parquet_error(&path, e))?;
-            write_atomically(&path, R::schema(), &batch)?;
+            write_parquet(self.storage.as_ref(), &path, R::schema(), &batch)?;
             report.partitions_written += 1;
             info!(
                 path = %path.display(),
