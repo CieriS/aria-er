@@ -54,6 +54,19 @@ in_scope as (
             {% endif %}
         from {{ this }}
     )
+        -- Archive rows not loaded yet come in whatever their age: yearly files are
+        -- added long after the lookback window has moved on.
+        or (
+            unioned.source_name = 'archive'
+            and not exists (
+                select 1
+                from {{ this }} as loaded
+                where loaded.station_id = unioned.station_id
+                    and loaded.pollutant_id = unioned.pollutant_id
+                    and loaded.measured_at_utc = unioned.measured_at_utc
+                    and loaded.source_name = 'archive'
+            )
+        )
     {% endif %}
 
 ),

@@ -41,7 +41,8 @@ Rules applied:
 - **Flag, don't drop.** Negative, zero and implausible values stay in the fact table with
   `is_negative`, `is_zero`, `is_implausible`; only `is_valid` rows enter the aggregates.
   Two tests with `warn` severity surface them without failing the build.
-- **Incremental lookback of 30 days**, the same window the ingestor reprocesses.
+- **Incremental lookback of 30 days**, the same window the ingestor reprocesses. Archive rows not
+  loaded yet are added whatever their age.
 - **Freshness**: `dbt source freshness` warns when the newest measurement is older than 48 hours.
 
 ### Check against the ARPAE annual report (Bologna, 2025)

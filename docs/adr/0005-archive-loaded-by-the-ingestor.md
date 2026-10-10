@@ -31,5 +31,7 @@ near-real-time measurements.
 - dbt staging for the archive is a plain typed select of Parquet, identical in shape to the
   near-real-time one; the `historical_dir` variable and the CSV fixtures are gone.
 - The whole lineage, archive included, is visible in Dagster.
-- Getting new archive files into `data/samples/` is still manual, and archive rows older
-  than the incremental lookback still need `dbt build --full-refresh`.
+- Getting new archive files into `data/samples/` is still manual.
+- The incremental model lets archive rows it has not loaded yet through, whatever their age,
+  so adding a year of files needs no full refresh. Only a correction to rows already loaded
+  and older than the lookback does.
