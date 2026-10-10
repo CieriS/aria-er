@@ -2,7 +2,7 @@
     config(
         materialized='incremental',
         unique_key=['station_id', 'pollutant_id', 'measured_at_utc'],
-        incremental_strategy='delete+insert'
+        incremental_strategy=replace_by_key_strategy()
     )
 }}
 
@@ -46,11 +46,11 @@ in_scope as (
         select
             {% if var('reprocess_from', none) %}
             least(
-                max(measured_at_utc) - interval ({{ var('lookback_days') }}) day,
-                cast('{{ var('reprocess_from') }}' as timestamp) - interval 1 day
+                max(measured_at_utc) - interval {{ var('lookback_days') }} day,
+                cast('{{ var('reprocess_from') }}' as {{ naive_timestamp_type() }}) - interval 1 day
             )
             {% else %}
-            max(measured_at_utc) - interval ({{ var('lookback_days') }}) day
+            max(measured_at_utc) - interval {{ var('lookback_days') }} day
             {% endif %}
         from {{ this }}
     )
@@ -75,6 +75,7 @@ deduplicated as (
 
     -- The validated archive wins over the near-real-time feed for the same key.
     select * from in_scope
+    where true
     qualify row_number() over (
         partition by station_id, pollutant_id, measured_at_utc
         order by source_priority
@@ -120,7 +121,7 @@ select
     period_start_utc,
     -- Calendar day in ARPAE local standard time, the day legal limits refer to.
     cast(
-        period_start_utc + interval ({{ var('local_utc_offset_hours') }}) hour as date
+        period_start_utc + interval {{ var('local_utc_offset_hours') }} hour as date
     ) as measurement_date,
     concentration_ugm3,
     value_original,

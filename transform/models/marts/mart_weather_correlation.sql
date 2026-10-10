@@ -28,9 +28,9 @@ paired as (
         stations.municipality,
         pm10.measurement_date,
         case
-            when month(pm10.measurement_date) in (12, 1, 2) then 'winter'
-            when month(pm10.measurement_date) in (3, 4, 5) then 'spring'
-            when month(pm10.measurement_date) in (6, 7, 8) then 'summer'
+            when extract(month from pm10.measurement_date) in (12, 1, 2) then 'winter'
+            when extract(month from pm10.measurement_date) in (3, 4, 5) then 'spring'
+            when extract(month from pm10.measurement_date) in (6, 7, 8) then 'summer'
             else 'autumn'
         end as season,
         pm10.pm10_ugm3,
@@ -57,12 +57,12 @@ aggregated as (
         avg(pm10_ugm3) as pm10_mean_ugm3,
         corr(pm10_ugm3, wind_speed_mean_ms) as corr_pm10_wind,
         corr(pm10_ugm3, precipitation_mm) as corr_pm10_precipitation,
-        count(*) filter (where is_windy) as windy_days,
-        avg(pm10_ugm3) filter (where is_windy) as pm10_mean_windy_ugm3,
-        avg(pm10_ugm3) filter (where not is_windy) as pm10_mean_calm_ugm3,
-        count(*) filter (where is_rainy) as rainy_days,
-        avg(pm10_ugm3) filter (where is_rainy) as pm10_mean_rainy_ugm3,
-        avg(pm10_ugm3) filter (where not is_rainy) as pm10_mean_dry_ugm3
+        count(case when is_windy then 1 end) as windy_days,
+        avg(case when is_windy then pm10_ugm3 end) as pm10_mean_windy_ugm3,
+        avg(case when not is_windy then pm10_ugm3 end) as pm10_mean_calm_ugm3,
+        count(case when is_rainy then 1 end) as rainy_days,
+        avg(case when is_rainy then pm10_ugm3 end) as pm10_mean_rainy_ugm3,
+        avg(case when not is_rainy then pm10_ugm3 end) as pm10_mean_dry_ugm3
     from paired
     group by all
 

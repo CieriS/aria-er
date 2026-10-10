@@ -65,8 +65,8 @@ yearly as (
         periods.station_id,
         periods.pollutant_id,
         periods.metric,
-        year(periods.measurement_date) as year,
-        count(*) filter (where periods.value_ugm3 > limits.limit_ugm3) as exceedances,
+        extract(year from periods.measurement_date) as year,
+        count(case when periods.value_ugm3 > limits.limit_ugm3 then 1 end) as exceedances,
         count(*) as valid_periods,
         max(periods.value_ugm3) as max_value_ugm3,
         any_value(periods.periods_per_day) as periods_per_day
@@ -94,7 +94,7 @@ select
     yearly.valid_periods,
     yearly.valid_periods / (
         yearly.periods_per_day
-        * date_diff('day', make_date(yearly.year, 1, 1), make_date(yearly.year + 1, 1, 1))
+        * {{ days_in_year('yearly.year') }}
     ) as year_coverage
 from yearly
 inner join limits

@@ -2,9 +2,13 @@ version: 2
 
 sources:
   - name: arpae_raw
-    description: Raw layer written by the Rust ingestor (near-real-time ARPAE datastore).
+    description: >
+      Raw layer written by the Rust ingestor. On DuckDB the Parquet files are read in place
+      (external_location); on BigQuery through the external tables created by Terraform.
+    schema: "{{ var('raw_dataset') }}"
     tables:
       - name: measurements
+        identifier: arpae_measurements
         description: One row per station, pollutant and reference time. Upserted by natural key.
         config:
           external_location: "read_parquet('{{ var('raw_dir') }}/arpae/measurements/*/*/*.parquet')"
@@ -12,16 +16,19 @@ sources:
           freshness:
             warn_after: {count: 48, period: hour}
       - name: measurements_archive
+        identifier: arpae_measurements_archive
         description: >
           Validated measurements loaded by the ingestor from the yearly ARPAE archive files.
           Same schema as measurements, without a validation flag.
         config:
           external_location: "read_parquet('{{ var('raw_dir') }}/arpae/measurements_archive/*/*/*.parquet')"
       - name: stations
+        identifier: arpae_stations
         description: Station registry snapshots, one directory per extraction date.
         config:
           external_location: "read_parquet('{{ var('raw_dir') }}/arpae/stations/*/*.parquet')"
       - name: station_types
+        identifier: arpae_station_types
         description: Station type snapshots from the ARPAE daily bulletin, one directory per extraction date.
         config:
           external_location: "read_parquet('{{ var('raw_dir') }}/arpae/station_types/*/*.parquet')"

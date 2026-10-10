@@ -7,7 +7,7 @@ with hourly as (
         cast(
             observed_at_utc
             - interval 1 hour
-            + interval ({{ var('local_utc_offset_hours') }}) hour
+            + interval {{ var('local_utc_offset_hours') }} hour
             as date
         ) as weather_date
     from {{ ref('stg_openmeteo__weather') }}
@@ -24,8 +24,8 @@ daily as (
         sum(precipitation_mm) as precipitation_mm,
         avg(temperature_c) as temperature_mean_c,
         avg(surface_pressure_hpa) as surface_pressure_mean_hpa,
-        count(*) filter (
-            where wind_speed_ms is not null and precipitation_mm is not null
+        count(
+            case when wind_speed_ms is not null and precipitation_mm is not null then 1 end
         ) as hours
     from hourly
     group by all
