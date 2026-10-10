@@ -15,7 +15,8 @@ What does not work, is approximate, or is still manual.
   46 traffic and background stations of the region; every pollutant for 2025 and PM10, PM2.5, NO2
   and O3 for 2016–2024 for the three Bologna stations. 2026 covers August only.
   January–July 2026 is missing from every source and shows as empty days in `mart_data_completeness`.
-- Archive rows older than the 30-day lookback need `dbt build --full-refresh` to reach the marts.
+- A *corrected* value in an archive file already loaded, older than the 30-day lookback, needs
+  `dbt build --full-refresh` to reach the marts. New archive rows are picked up on their own.
 - An 8-hour window ending on a missing hour is not produced; days with many gaps may lack a few windows.
 - Station types follow the latest ARPAE bulletin; their history is kept in raw (one snapshot per
   day) but not yet modelled as a type 2 dimension.
