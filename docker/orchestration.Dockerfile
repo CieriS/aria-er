@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     && cp target/release/aq-ingest /usr/local/bin/aq-ingest
 
 # --- dependencies: a virtual environment with Dagster and dbt ---
-FROM python:3.12-slim-bookworm AS dependencies
+FROM python:3.14-slim-bookworm AS dependencies
 COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy
 WORKDIR /app/orchestration
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
 # --- runtime: Dagster with the dbt project and the ingestor binary ---
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 RUN useradd --create-home --uid 1000 aria \
     && mkdir -p /app/raw /app/warehouse /app/dagster_home \
     && chown -R aria:aria /app
