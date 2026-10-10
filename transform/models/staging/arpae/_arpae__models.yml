@@ -32,7 +32,7 @@ models:
       - name: unit_original
         description: Unit as published.
       - name: validation_flag
-        description: Source validation flag, verbatim (T, G, M, S: temporary, daily, monthly, six-monthly).
+        description: Source validation flag, verbatim (T temporary, G daily, M monthly, S six-monthly).
       - name: raw_reftime
         description: Reference time exactly as published.
 
