@@ -87,7 +87,10 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
   `mart_traffic_vs_background`) rather than aggregating in Python.
 - **Station type ingested, not typed in**: the ARPAE registry does not say whether a
   station measures traffic or background; the daily bulletin does. The ingestor snapshots
-  it at every run, so a reclassification by ARPAE reaches the marts on its own.
+  it at every run. When ARPAE dropped the exposure from the label (2026-10-06) the marts kept
+  working from the earlier snapshots, with a frozen reference seed for new installations;
+  the change had first emptied `mart_traffic_vs_background` without failing any test, so an
+  error-level test now requires both traffic and background stations to exist.
 - **Altair** for charts: it ships with Streamlit, no extra plotting dependency.
 - **A connection per query, read-only**: no state shared between sessions, and the
   dashboard cannot modify the warehouse.

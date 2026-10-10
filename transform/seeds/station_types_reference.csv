@@ -1,0 +1,68 @@
+station_id,station_type,area_type,source_label,bulletin_id
+2000003,background,urban,Urbana Fondo,20261004
+2000004,traffic,urban,Urbana Traffico,20261004
+2000214,background,rural,Rurale Fondo,20261004
+2000219,background,suburban,Suburbana Fondo,20261004
+2000224,other,,Mobile,20261004
+2000229,other,,Locale,20261004
+2000230,other,,Locale,20261004
+2000231,other,,Locale,20261004
+2000232,other,,Locale,20261004
+3000001,background,suburban,Suburbana Fondo,20261004
+3000007,background,urban,Urbana Fondo,20261004
+3000018,background,rural,Rurale Fondo,20261004
+3000022,background,rural,Rurale Fondo,20261004
+3000024,other,,Mobile,20261004
+3000025,traffic,urban,Urbana Traffico,20261004
+4000002,traffic,urban,Urbana Traffico,20261004
+4000012,background,suburban,Suburbana Fondo,20261004
+4000022,background,urban,Urbana Fondo,20261004
+4000023,other,,Locale,20261004
+4000024,other,,Locale,20261004
+4000110,traffic,urban,Urbana Traffico,20261004
+4000152,background,rural,Rurale Fondo,20261004
+4000153,other,,Mobile,20261004
+4000155,background,urban,Urbana Fondo,20261004
+4000158,other,,Locale,20261004
+5000007,background,suburban,Suburbana Fondo,20261004
+5000020,other,,Locale,20261004
+5000024,other,,Locale,20261004
+5000033,traffic,urban,Urbana Traffico,20261004
+5000062,background,rural,Rurale Fondo,20261004
+5000064,other,,Mobile,20261004
+5000065,background,urban,Urbana Fondo,20261004
+6000010,background,urban,Urbana Fondo,20261004
+6000011,traffic,urban,Urbana Traffico,20261004
+6000014,background,urban,Urbana Fondo,20261004
+6000031,background,suburban,Suburbana Fondo,20261004
+6000035,other,,Locale,20261004
+6000036,background,rural,Rurale Fondo,20261004
+7000002,traffic,urban,Urbana Traffico,20261004
+7000014,background,urban,Urbana Fondo,20261004
+7000015,traffic,urban,Urbana Traffico,20261004
+7000024,traffic,urban,Urbana Traffico,20261004
+7000027,background,rural,Rurale Fondo,20261004
+7000041,background,suburban,Suburbana Fondo,20261004
+7000042,background,rural,Rurale Fondo,20261004
+8000002,traffic,urban,Urbana Traffico,20261004
+8000007,background,rural,Rurale Fondo,20261004
+8000038,background,suburban,Suburbana Fondo,20261004
+8000040,background,urban,Urbana Fondo,20261004
+8000041,background,rural,Rurale Fondo,20261004
+8000044,other,,Locale,20261004
+8000045,other,,Locale,20261004
+9000014,traffic,urban,Urbana Traffico,20261004
+9000015,other,,Locale,20261004
+9000021,background,urban,Urbana Fondo,20261004
+9000022,other,,Mobile,20261004
+9000068,background,rural,Rurale Fondo,20261004
+9000070,background,suburban,Suburbana Fondo,20261004
+9000077,other,,Locale,20261004
+9000083,background,urban,Urbana Fondo,20261004
+9000085,other,,Mobile,20261004
+10000001,traffic,urban,Urbana Traffico,20261004
+10000002,background,urban,Urbana Fondo,20261004
+10000059,background,suburban,Suburbana Fondo,20261004
+10000060,background,rural,Rurale Fondo,20261004
+10000071,other,,Mobile,20261004
+10000074,background,rural,Rurale Fondo,20261004
