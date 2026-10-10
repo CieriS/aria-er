@@ -38,3 +38,9 @@ Phase 1 ingests only the datastore resource, through `datastore_search_sql`.
 - If the UTC+1 assumption is wrong, timestamps are off by a constant and can be
   recomputed from `raw_reftime` without downloading again.
 - Rows that disappear upstream are not deleted from the raw layer (upsert only).
+
+## Update, 2026-10-10
+
+The UTC+1 assumption is confirmed: ARPAE's REST archive publishes timestamps with an explicit
+`+01:00` offset all year. The datastore itself has not been updated since 2026-09-17; see
+`docs/data.md`.

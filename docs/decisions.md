@@ -12,6 +12,7 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 | [0004](adr/0004-generic-source-and-sink-traits.md) | `Source` and `Sink` generic over the record type | accepted |
 | [0005](adr/0005-archive-loaded-by-the-ingestor.md) | Archive loaded by the ingestor into its own raw dataset | accepted |
 | [0006](adr/0006-gcs-and-bigquery-as-a-second-target.md) | Cloud Storage and BigQuery as a second target of the same pipeline | accepted, not yet run on GCP |
+| [0007](adr/0007-no-streaming.md) | Streaming is not justified for these data | proposed |
 
 ## Phase 1 — Rust ingestor
 
@@ -121,3 +122,10 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 - **Two Terraform passes**: external tables are enabled after the first ingestion, since
   BigQuery needs files to exist under their prefix.
 - **CI plans, never applies**, and only where the repository has the GCP settings.
+
+## Phase 8 — streaming (not built)
+
+- **No streaming** ([ADR 0007](adr/0007-no-streaming.md)). The sources are batches polled
+  over HTTP, published hours after measurement and revised for months; every question the
+  platform answers is daily or coarser. If fresher data is ever needed, the idempotent
+  schedule can simply run more often.

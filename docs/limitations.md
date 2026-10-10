@@ -45,7 +45,12 @@ What does not work, is approximate, or is still manual.
 - Single writer: two concurrent runs on the same partition would race.
 - The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
 - No source covers early 2026 at the moment: it is not yet in the historical archive and is already outside the near-real-time window.
-- The meaning of `v_flag` and the timezone of the timestamps are inferred, not documented by ARPAE.
+- **The near-real-time source has stopped updating.** The CKAN datastore the ingestor reads has had
+  no measurement after 2026-09-17. ARPAE publishes fresh data on a new REST archive
+  (`qa_archivio_dati_public`) that the ingestor does not read yet: it uses different station and
+  parameter identifiers and stamps daily values at the end of the day, so moving to it needs a
+  mapping and a convention check, not just a new URL. Until then the daily schedule ingests nothing
+  new and the freshness check stays in warning. See [data.md](data.md).
 - **The cloud target has not been run on a real GCP project yet.** Terraform is validated, the
   storage backend is tested on an in-memory object store and the BigQuery SQL is syntax-checked
   only. See [cloud.md](cloud.md).
