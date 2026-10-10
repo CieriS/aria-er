@@ -1,0 +1,37 @@
+[
+  {
+    "name": "station_id",
+    "type": "INTEGER",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "pollutant_id",
+    "type": "INTEGER",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "measured_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "value",
+    "type": "FLOAT",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "unit",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "validation_flag",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "raw_reftime",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "name": "location_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "latitude",
+    "type": "FLOAT",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "longitude",
+    "type": "FLOAT",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "grid_latitude",
+    "type": "FLOAT",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "grid_longitude",
+    "type": "FLOAT",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "observed_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "temperature_c",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "precipitation_mm",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "wind_speed_ms",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "wind_direction_deg",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "surface_pressure_hpa",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  }
+]

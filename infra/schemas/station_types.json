@@ -1,0 +1,32 @@
+[
+  {
+    "name": "station_id",
+    "type": "INTEGER",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "station_name",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "province",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "type_label",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "bulletin_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "extracted_on",
+    "type": "DATE",
+    "mode": "REQUIRED"
+  }
+]

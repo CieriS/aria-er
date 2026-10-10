@@ -1,0 +1,62 @@
+[
+  {
+    "name": "station_id",
+    "type": "INTEGER",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "station_name",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "municipality",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "province",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "address",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "altitude_m",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "longitude",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "latitude",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "pollutant_id",
+    "type": "INTEGER",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "pollutant_name",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "unit",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "extracted_on",
+    "type": "DATE",
+    "mode": "REQUIRED"
+  }
+]
