@@ -180,9 +180,9 @@ models:
 
   - name: int_station_types_current
     description: >
-      Current type of each station. The exposure (traffic or background) comes from the
-      latest bulletin that states it, then from the reference seed; the area from the
-      latest bulletin. station_type_source says which one was used.
+      Current type of each station. The exposure (traffic, background, industrial) comes
+      from the latest snapshot of the ARPAE station registry that states it, then from the
+      reference seed; the area from the latest snapshot. station_type_source says which.
     columns:
       - name: station_id
         description: Canonical station code.
@@ -201,10 +201,10 @@ models:
         data_tests:
           - accepted_values:
               arguments:
-                values: [latest_bulletin, earlier_bulletin, reference, unknown]
+                values: [latest_snapshot, earlier_snapshot, reference, unknown]
       - name: type_label_original
-        description: Label of the latest bulletin, as published.
+        description: Label of the latest snapshot, as stored in raw.
       - name: bulletin_id
-        description: Latest bulletin seen for the station.
+        description: Version (date) of the latest source record seen for the station.
       - name: extracted_on
-        description: Date that bulletin was downloaded.
+        description: Date that snapshot was downloaded.

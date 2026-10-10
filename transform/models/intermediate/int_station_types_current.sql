@@ -12,8 +12,8 @@ latest as (
 
 ),
 
--- The most recent bulletin that still said whether the station measures traffic or
--- background: later bulletins dropped that part of the label.
+-- The most recent snapshot stating whether the station measures traffic or background.
+-- Snapshots taken from the daily bulletin between 2026-10-06 and 2026-10-08 do not.
 latest_with_exposure as (
 
     select * from snapshots
@@ -34,8 +34,8 @@ select
     coalesce(latest_with_exposure.station_type, reference.station_type, 'other') as station_type,
     coalesce(latest.area_type, latest_with_exposure.area_type, reference.area_type) as area_type,
     case
-        when latest.station_type is not null then 'latest_bulletin'
-        when latest_with_exposure.station_type is not null then 'earlier_bulletin'
+        when latest.station_type is not null then 'latest_snapshot'
+        when latest_with_exposure.station_type is not null then 'earlier_snapshot'
         when reference.station_type is not null then 'reference'
         else 'unknown'
     end as station_type_source,

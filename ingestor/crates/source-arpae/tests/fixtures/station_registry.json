@@ -1,0 +1,227 @@
+{
+ "_items": [
+  {
+   "_id": "2000224",
+   "nome": "LM-PR",
+   "cod_winair": "",
+   "cod_ue": "",
+   "indirizzo": "VIA GALILEO GALILEI - RUBBIANO",
+   "comune": "SOLIGNANO",
+   "provincia": "PARMA",
+   "sigla_provincia": "PR",
+   "loc": {
+    "coordinates": [
+     10.075762,
+     44.684159
+    ],
+    "type": "Point"
+   },
+   "altitudine": "",
+   "tipo_stazione": "",
+   "zona": "",
+   "tipo_zona": "",
+   "tipo_emissione": "",
+   "parametri_misurati": "As (Arsenico); BaP (Benzo(a)pyrene); Cd (Cadmio); CO (Monossido di carbonio); C6H4(CH3)2 (o-xylene); C6H4(CH3)2 (Xyleni); C6H5-CH2-CH3 (Etil Benzene); C6H5-CH3 (Toluene); C6H6 (Benzene); N Aliquote; Ni (Nickel); NO (Monossido di azoto); NOX (Ossidi di azoto); NO2 (Biossido di azoto); O3 (Ozono); Pb (Piombo); PM10; SO2 (Biossido di zolfo)",
+   "nome_rete": "Rete Mobile",
+   "per_bollettino": true,
+   "_updated": "Sat, 10 Oct 2026 05:50:33 GMT",
+   "_created": "Fri, 11 Oct 2024 16:44:32 GMT",
+   "_links": {
+    "self": {
+     "title": "Qualità dell'aria - Anagrafica delle stazioni",
+     "href": "qa_stazioni/2000224"
+    }
+   }
+  },
+  {
+   "_id": "2000229",
+   "nome": "MALCANTONE",
+   "cod_winair": "",
+   "cod_ue": "",
+   "indirizzo": "STRADA DEL MALCANTONE - MALCANTONE",
+   "comune": "MEZZANI",
+   "provincia": "PARMA",
+   "sigla_provincia": "PR",
+   "loc": {
+    "coordinates": [
+     10.399611,
+     44.890934
+    ],
+    "type": "Point"
+   },
+   "altitudine": 25,
+   "tipo_stazione": "Industriale",
+   "zona": "Rurale",
+   "tipo_zona": "agricola",
+   "tipo_emissione": "Trattamento e smaltimento rifiuti",
+   "parametri_misurati": "NO (Monossido di azoto); NOX (Ossidi di azoto); NO2 (Biossido di azoto); PM10; PM2.5",
+   "nome_rete": "Stazioni Locali",
+   "per_bollettino": true,
+   "per_mappa": false,
+   "per_dati": false,
+   "_updated": "Sat, 10 Oct 2026 05:50:42 GMT",
+   "_created": "Fri, 11 Oct 2024 16:44:32 GMT",
+   "_links": {
+    "self": {
+     "title": "Qualità dell'aria - Anagrafica delle stazioni",
+     "href": "qa_stazioni/2000229"
+    }
+   }
+  },
+  {
+   "_id": "4000002",
+   "nome": "GIARDINI",
+   "cod_winair": "803613",
+   "cod_ue": "IT0721A",
+   "indirizzo": "VIA GIARDINI",
+   "comune": "MODENA",
+   "provincia": "MODENA",
+   "sigla_provincia": "MO",
+   "loc": {
+    "coordinates": [
+     10.905724,
+     44.636985
+    ],
+    "type": "Point"
+   },
+   "altitudine": 39,
+   "tipo_stazione": "Traffico",
+   "zona": "Urbana",
+   "tipo_zona": "residenziale/commerciale",
+   "tipo_emissione": "Trasporto su strada",
+   "parametri_misurati": "As (Arsenico); Cd (Cadmio); C6H4(CH3)2 (o-xylene); C6H4(CH3)2 (Xyleni); C6H5-CH2-CH3 (Etil Benzene); C6H5-CH3 (Toluene); C6H6 (Benzene); N Aliquote; Ni (Nickel); NO (Monossido di azoto); NOX (Ossidi di azoto); NO2 (Biossido di azoto); Pb (Piombo); PM10",
+   "nome_rete": "Pianura Ovest",
+   "per_bollettino": true,
+   "per_mappa": true,
+   "per_dati": true,
+   "_updated": "Sat, 10 Oct 2026 05:50:44 GMT",
+   "_created": "Fri, 11 Oct 2024 16:44:33 GMT",
+   "_links": {
+    "self": {
+     "title": "Qualità dell'aria - Anagrafica delle stazioni",
+     "href": "qa_stazioni/4000002"
+    }
+   }
+  },
+  {
+   "_id": "7000014",
+   "nome": "GIARDINI MARGHERITA",
+   "cod_winair": "803708",
+   "cod_ue": "IT0892A",
+   "indirizzo": "VIALE BOTTONELLI",
+   "comune": "BOLOGNA",
+   "provincia": "BOLOGNA",
+   "sigla_provincia": "BO",
+   "loc": {
+    "coordinates": [
+     11.355035,
+     44.483628
+    ],
+    "type": "Point"
+   },
+   "altitudine": 43,
+   "tipo_stazione": "Fondo",
+   "zona": "Urbana",
+   "tipo_zona": "residenziale",
+   "tipo_emissione": "Trasporto su strada",
+   "parametri_misurati": "As (Arsenico); BaP (Benzo(a)pyrene); Cd (Cadmio); N Aliquote; Ni (Nickel); NO (Monossido di azoto); NOX (Ossidi di azoto); NO2 (Biossido di azoto); O3 (Ozono); Pb (Piombo); PM1 (aggiuntivo 1); PM1 OPC; PM10; PM10 (aggiuntivo 1); PM10 OPC; PM2.5; PM2.5 OPC; PM4 OPC; PNC OPC; PTS OPC",
+   "nome_rete": "Agglomerato",
+   "per_bollettino": true,
+   "per_mappa": true,
+   "per_dati": true,
+   "_updated": "Sat, 10 Oct 2026 05:50:55 GMT",
+   "_created": "Fri, 11 Oct 2024 16:44:35 GMT",
+   "_links": {
+    "self": {
+     "title": "Qualità dell'aria - Anagrafica delle stazioni",
+     "href": "qa_stazioni/7000014"
+    }
+   }
+  },
+  {
+   "_id": "7000015",
+   "nome": "PORTA SAN FELICE",
+   "cod_winair": "803713",
+   "cod_ue": "IT1159A",
+   "indirizzo": "PIAZZA DI PORTA SAN FELICE",
+   "comune": "BOLOGNA",
+   "provincia": "BOLOGNA",
+   "sigla_provincia": "BO",
+   "loc": {
+    "coordinates": [
+     11.328501,
+     44.500017
+    ],
+    "type": "Point"
+   },
+   "altitudine": 54,
+   "tipo_stazione": "Traffico",
+   "zona": "Urbana",
+   "tipo_zona": "residenziale/commerciale",
+   "tipo_emissione": "Trasporto su strada",
+   "parametri_misurati": "BaP (Benzo(a)pyrene); CO (Monossido di carbonio); C6H4(CH3)2 (o-xylene); C6H4(CH3)2 (Xyleni); C6H5-CH2-CH3 (Etil Benzene); C6H5-CH3 (Toluene); C6H6 (Benzene); N Aliquote; NO (Monossido di azoto); NOX (Ossidi di azoto); NO2 (Biossido di azoto); PM10; PM2.5",
+   "nome_rete": "Agglomerato",
+   "per_bollettino": true,
+   "per_mappa": true,
+   "per_dati": true,
+   "_updated": "Sat, 10 Oct 2026 05:50:52 GMT",
+   "_created": "Fri, 11 Oct 2024 16:44:36 GMT",
+   "_links": {
+    "self": {
+     "title": "Qualità dell'aria - Anagrafica delle stazioni",
+     "href": "qa_stazioni/7000015"
+    }
+   }
+  },
+  {
+   "_id": "7000041",
+   "nome": "VIA CHIARINI",
+   "cod_winair": "803719",
+   "cod_ue": "IT2075A",
+   "indirizzo": "VIA CHIARINI",
+   "comune": "BOLOGNA",
+   "provincia": "BOLOGNA",
+   "sigla_provincia": "BO",
+   "loc": {
+    "coordinates": [
+     11.286065,
+     44.500093
+    ],
+    "type": "Point"
+   },
+   "altitudine": 56,
+   "tipo_stazione": "Fondo",
+   "zona": "Suburbana",
+   "tipo_zona": "residenziale",
+   "tipo_emissione": "Trasporto su strada",
+   "parametri_misurati": "NO (Monossido di azoto); NOX (Ossidi di azoto); NO2 (Biossido di azoto); O3 (Ozono); PM10",
+   "nome_rete": "Agglomerato",
+   "per_bollettino": true,
+   "per_mappa": true,
+   "per_dati": true,
+   "_updated": "Sat, 10 Oct 2026 05:50:56 GMT",
+   "_created": "Fri, 11 Oct 2024 16:44:37 GMT",
+   "_links": {
+    "self": {
+     "title": "Qualità dell'aria - Anagrafica delle stazioni",
+     "href": "qa_stazioni/7000041"
+    }
+   }
+  }
+ ],
+ "_links": {
+  "parent": {
+   "title": "home",
+   "href": "/"
+  },
+  "self": {
+   "title": "Qualità dell'aria - Anagrafica delle stazioni",
+   "href": "qa_stazioni?max_results=500&t=json"
+  }
+ },
+ "_meta": {
+  "page": 1,
+  "max_results": 500,
+  "total": 6
+ }
+}
