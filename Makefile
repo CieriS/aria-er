@@ -98,3 +98,16 @@ cloud-transform:
 # Checks that mart_exceedances_yearly holds the same rows in DuckDB and in BigQuery.
 cloud-compare:
 	cd transform && uv run --group cloud python scripts/compare_targets.py
+
+# The BigQuery SQL of every model, checked without GCP: compiled for the BigQuery adapter,
+# executed on the open-source BigQuery emulator and compared with the DuckDB build of the
+# same fixtures. Needs Docker; the emulator image is amd64 (emulated on Apple Silicon).
+.PHONY: bigquery-dialect-check
+BIGQUERY_EMULATOR_IMAGE := ghcr.io/goccy/bigquery-emulator@sha256:f4e428d265a93dc5ce36c294e1c584c7c9b384117d47ab8ddbb63d8d50b7f393
+bigquery-dialect-check: transform-fixtures
+	-docker rm -f aria-er-bigquery-emulator >/dev/null 2>&1
+	docker run -d --name aria-er-bigquery-emulator --platform linux/amd64 -p 9050:9050 \
+		$(BIGQUERY_EMULATOR_IMAGE) --project=aria-er-emulator --dataset=aria_er_raw
+	sleep 8
+	cd transform && uv run --group cloud python scripts/check_bigquery_dialect.py --duckdb $(FIXTURE_DB); \
+		status=$$?; docker rm -f aria-er-bigquery-emulator >/dev/null; exit $$status

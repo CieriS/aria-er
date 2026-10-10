@@ -28,3 +28,22 @@ jobs:
       # Seeds, snapshot, models and their tests on committed fixtures: no network calls.
       - name: dbt build
         run: make transform-fixtures
+
+  # The same models compiled for BigQuery, executed on the open-source BigQuery emulator
+  # and compared with the DuckDB build: no GCP project, no credentials, no network calls
+  # beyond pulling the emulator image.
+  bigquery-dialect:
+    name: BigQuery dialect (emulator)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: transform/uv.lock
+      - name: Install dependencies
+        working-directory: transform
+        run: uv sync --locked --group cloud
+      - name: Check the BigQuery SQL
+        run: make bigquery-dialect-check
+
