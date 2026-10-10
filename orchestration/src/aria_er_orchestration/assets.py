@@ -63,7 +63,7 @@ def _ingest_window(context: AssetExecutionContext) -> tuple[date, date]:
         ),
         AssetSpec(
             RAW_STATION_TYPES,
-            description="Dated snapshot of the station types from the ARPAE bulletin (raw layer).",
+            description="Dated snapshot of the station types from the ARPAE registry (raw layer).",
             group_name="ingestion",
             kinds={"rust", "parquet"},
         ),

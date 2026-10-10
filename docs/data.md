@@ -21,7 +21,9 @@ Full details, schema and data quality findings: [docs/data-exploration.md](data-
 - **2026-10-06, daily bulletin**: `tipostazione` went from `Urbana Traffico` / `Urbana Fondo` to
   the area alone (`Urbana`), and the records gained `locality` and `originalidstazione`. Nothing
   failed: the ingestor stores the label as published, and the classification downstream silently
-  became "unknown" for every station. See [limitations.md](limitations.md) for how it is handled.
+  became "unknown" for every station. The station type is now ingested from the station registry
+  `https://apps.arpae.it/REST/qa_stazioni` (`tipo_stazione`, `zona`), which also classifies the
+  industrial stations the bulletin labelled as local.
 
 ## Data quality findings and how they are handled
 

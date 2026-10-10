@@ -8,8 +8,8 @@ ckan_base_url = "https://dati.arpae.it"
 measurements_resource_id = "4dc855a1-6298-4b71-a1ae-d80693d43dcb"
 stations_csv_url = "https://docs.google.com/spreadsheets/d/1-4wgZ8JeLeg0bODTSFUrshPY-_y9mERUu0FJtSFr78s/export?format=csv"
 pollutants_csv_url = "https://docs.google.com/spreadsheets/d/1K6vRcShjje2CDnvnk39o3jkU4ihgpA7rfsdAV1S-yXU/export?format=csv"
-# Daily bulletins: the only published source of the station type (traffic, background).
-bulletin_url = "https://apps.arpae.it/REST/bollettini_qa"
+# Station registry carrying the type of each station (traffic, background, industrial).
+station_types_url = "https://apps.arpae.it/REST/qa_stazioni"
 # Validated yearly files downloaded from the ARPAE archive, read by `aq-ingest archive`.
 archive_dir = "data/samples/arpae"
 # Published timestamps do not follow daylight saving: assumed UTC+1 all year.

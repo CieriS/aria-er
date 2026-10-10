@@ -18,10 +18,10 @@ What does not work, is approximate, or is still manual.
 - A *corrected* value in an archive file already loaded, older than the 30-day lookback, needs
   `dbt build --full-refresh` to reach the marts. New archive rows are picked up on their own.
 - An 8-hour window ending on a missing hour is not produced; days with many gaps may lack a few windows.
-- **ARPAE no longer publishes the station exposure.** Since the bulletin of 2026-10-06 the type label
-  gives the area only (`Urbana`), not traffic or background. The exposure now comes from the last
-  bulletin that stated it, or from a reference seed frozen at 2026-10-04: a station reclassified by
-  ARPAE after that date is not picked up. A `warn` test lists the stations in this situation.
+- Station types come from the ARPAE station registry (`qa_stazioni`), snapshotted at every run, so a
+  reclassification is picked up. If the registry stops stating the exposure, the last snapshot that
+  did is used, then a reference seed frozen at 2026-10-04, and a `warn` test lists the stations
+  affected. The raw column holding the version of the source record is still called `bulletin_id`.
 - The history of station types is kept in raw (one snapshot per day) but not modelled as a type 2
   dimension.
 - The registry snapshot has few extractions so far, so little history yet.

@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use aq_core::{DateWindow, Source, SourceError};
 use aq_http::{HttpConfig, Transport, TransportError};
 use aq_source_arpae::parse::{
-    parse_bulletin_last_page, parse_nrt_page, parse_pollutants_csv, parse_station_code,
-    parse_station_types, parse_stations_csv,
+    parse_nrt_page, parse_pollutants_csv, parse_station_code, parse_station_types,
+    parse_stations_csv,
 };
 use aq_source_arpae::{ArpaeConfig, ArpaeSource};
 use chrono::{FixedOffset, NaiveDate, TimeZone, Utc};
@@ -15,7 +15,7 @@ use chrono::{FixedOffset, NaiveDate, TimeZone, Utc};
 const NRT_PAGE: &str = include_str!("fixtures/nrt_page.json");
 const POLLUTANTS: &str = include_str!("fixtures/pollutants.csv");
 const STATIONS: &str = include_str!("fixtures/stations.csv");
-const BULLETIN_PAGE: &str = include_str!("fixtures/bulletin_page.json");
+const STATION_TYPES: &str = include_str!("fixtures/station_registry.json");
 const EMPTY_PAGE: &str = r#"{"success": true, "result": {"records": [], "fields": []}}"#;
 
 fn utc_plus_one() -> FixedOffset {
@@ -143,9 +143,9 @@ impl Transport for FixtureTransport {
                 self.queries.borrow_mut().push(sql);
                 Ok(if first_page { NRT_PAGE } else { EMPTY_PAGE }.to_owned())
             }
-            "http://apps.test/bollettini_qa" => {
+            "http://apps.test/qa_stazioni" => {
                 self.queries.borrow_mut().push(format!("{query:?}"));
-                Ok(BULLETIN_PAGE.to_owned())
+                Ok(STATION_TYPES.to_owned())
             }
             other => panic!("unexpected url {other}"),
         }
@@ -158,7 +158,7 @@ fn source(transport: FixtureTransport) -> ArpaeSource<FixtureTransport> {
         measurements_resource_id: "4dc855a1-6298-4b71-a1ae-d80693d43dcb".to_owned(),
         stations_csv_url: "http://sheets.test/stations".to_owned(),
         pollutants_csv_url: "http://sheets.test/pollutants".to_owned(),
-        bulletin_url: "http://apps.test/bollettini_qa".to_owned(),
+        station_types_url: "http://apps.test/qa_stazioni".to_owned(),
         archive_dir: String::new(),
         utc_offset_hours: 1,
         page_size: 100,
@@ -220,7 +220,7 @@ fn source_rejects_a_resource_id_that_is_not_a_uuid() {
         measurements_resource_id: "x\" OR 1=1 --".to_owned(),
         stations_csv_url: String::new(),
         pollutants_csv_url: String::new(),
-        bulletin_url: String::new(),
+        station_types_url: String::new(),
         archive_dir: String::new(),
         utc_offset_hours: 1,
         page_size: 100,
@@ -239,59 +239,78 @@ fn source_rejects_a_resource_id_that_is_not_a_uuid() {
 }
 
 #[test]
-fn bulletin_listing_points_to_its_last_page() {
-    assert_eq!(parse_bulletin_last_page(BULLETIN_PAGE).unwrap(), Some(172));
-    assert_eq!(parse_bulletin_last_page(r#"{"_items": []}"#).unwrap(), None);
-    let broken = r#"{"_items": [], "_links": {"last": {"href": "bollettini_qa?t=json"}}}"#;
-    assert!(parse_bulletin_last_page(broken).is_err());
+fn station_types_join_area_and_exposure_into_one_label() {
+    let types = parse_station_types(STATION_TYPES).unwrap();
+    assert_eq!(types.len(), 6);
+
+    let by_id = |id: u32| types.iter().find(|t| t.station_id == id).unwrap();
+    let porta_san_felice = by_id(7_000_015);
+    assert_eq!(porta_san_felice.station_name, "PORTA SAN FELICE");
+    assert_eq!(porta_san_felice.province, "BO");
+    assert_eq!(porta_san_felice.type_label, "Urbana Traffico");
+    assert_eq!(by_id(7_000_041).type_label, "Suburbana Fondo");
+    assert_eq!(by_id(2_000_229).type_label, "Rurale Industriale");
+    // A mobile laboratory has neither area nor exposure.
+    assert_eq!(by_id(2_000_224).type_label, "");
+
+    // The version is the day the registry record was last updated.
+    assert_eq!(porta_san_felice.bulletin_id.len(), 8);
+    assert!(porta_san_felice.bulletin_id.starts_with("2026"));
 }
 
 #[test]
-fn station_types_come_from_the_latest_bulletin_and_its_current_version() {
-    let types = parse_station_types(BULLETIN_PAGE).unwrap();
+fn incomplete_or_malformed_registry_fails_loudly() {
+    let station = r#"{"_id": "7000015", "nome": "PORTA SAN FELICE", "sigla_provincia": "BO",
+        "tipo_stazione": "Traffico", "zona": "Urbana",
+        "_updated": "Sat, 10 Oct 2026 05:40:51 GMT"}"#;
+    let page = |items: &str, total: u32| {
+        format!(r#"{{"_items": [{items}], "_meta": {{"total": {total}}}}}"#)
+    };
+    assert_eq!(parse_station_types(&page(station, 1)).unwrap().len(), 1);
 
-    // The fixture holds two bulletins: only the most recent one is used.
-    assert!(types.iter().all(|t| t.bulletin_id == "20191116"));
-
-    let giardini = types.iter().find(|t| t.station_id == 4_000_002).unwrap();
-    assert_eq!(giardini.station_name, "MODENA - GIARDINI");
-    assert_eq!(giardini.province, "MO");
-    assert_eq!(giardini.type_label, "Urbana Traffico");
-
-    // Modena has two versions in this bulletin: stations are not duplicated.
-    let mut ids: Vec<_> = types.iter().map(|t| t.station_id).collect();
-    let before = ids.len();
-    ids.sort_unstable();
-    ids.dedup();
-    assert_eq!(ids.len(), before);
-    assert!(types.iter().any(|t| t.province == "BO"));
+    // More stations exist than the page returned.
+    let error = parse_station_types(&page(station, 2)).unwrap_err();
+    assert!(
+        error.to_string().contains("no longer fits one page"),
+        "{error}"
+    );
+    // No station at all.
+    assert!(parse_station_types(&page("", 0)).is_err());
+    // A code or a date that cannot be read.
+    assert!(parse_station_types(&page(&station.replace("7000015", "x1"), 1)).is_err());
+    assert!(parse_station_types(&page(
+        &station.replace("Sat, 10 Oct 2026 05:40:51 GMT", "today"),
+        1
+    ))
+    .is_err());
+    // The exposure field is gone (as happened to the bulletin label).
+    assert!(parse_station_types(&page(
+        &station.replace(r#""tipo_stazione": "Traffico","#, ""),
+        1
+    ))
+    .is_err());
 }
 
 #[test]
-fn bulletin_without_stations_fails_loudly() {
-    assert!(parse_station_types(r#"{"_items": []}"#).is_err());
-    assert!(parse_station_types(r#"{"_items": [{"_id": "20261004", "manuale": true}]}"#).is_err());
-    let bad_code = r#"{"_items": [{"_id": "20261004", "bo": [{"data": [
-        {"prov": "BO", "idstazione": "x1", "stazione": "S", "tipostazione": "Urbana Fondo"}]}]}]}"#;
-    assert!(parse_station_types(bad_code).is_err());
-}
-
-#[test]
-fn source_reads_station_types_from_the_last_page() {
+fn source_asks_the_registry_for_every_station_without_photos() {
     let source = source(FixtureTransport {
         queries: RefCell::new(Vec::new()),
         fail_first: RefCell::new(false),
     });
-    let day = NaiveDate::from_ymd_opt(2026, 10, 4).unwrap();
+    let day = NaiveDate::from_ymd_opt(2026, 10, 10).unwrap();
 
     let types = source
         .station_types()
         .fetch(DateWindow::new(day, day).unwrap())
         .unwrap();
 
-    assert!(!types.is_empty());
+    assert_eq!(types.len(), 6);
     let queries = source.transport().queries.borrow();
-    assert_eq!(queries.len(), 2);
-    assert!(queries[0].contains("\"t\", \"json\"") && !queries[0].contains("page"));
-    assert!(queries[1].contains("\"page\", \"172\""));
+    assert_eq!(queries.len(), 1);
+    assert!(
+        queries[0].contains(r#""max_results", "500""#),
+        "{}",
+        queries[0]
+    );
+    assert!(queries[0].contains("foto"), "{}", queries[0]);
 }

@@ -30,7 +30,7 @@ pub struct StationSensor {
     pub pollutant: Pollutant,
 }
 
-/// Type of a station as published in an ARPAE daily bulletin.
+/// Type of a station as published by ARPAE (station registry; daily bulletin until 2026-10-08).
 #[derive(Debug, Clone, PartialEq)]
 pub struct StationType {
     pub station_id: u32,
@@ -38,7 +38,9 @@ pub struct StationType {
     pub province: String,
     /// Label exactly as published, e.g. `Urbana Traffico`.
     pub type_label: String,
-    /// Identifier (date) of the bulletin the label comes from.
+    /// Version (date, `YYYYMMDD`) of the source record the label comes from. The name
+    /// dates from when the source was the daily bulletin and is kept for the files
+    /// already written.
     pub bulletin_id: String,
 }
 

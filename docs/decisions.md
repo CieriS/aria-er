@@ -86,12 +86,14 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
   small synthetic warehouse.
 - **Two marts added for the dashboard** (`mart_pollutant_trend`,
   `mart_traffic_vs_background`) rather than aggregating in Python.
-- **Station type ingested, not typed in**: the ARPAE registry does not say whether a
-  station measures traffic or background; the daily bulletin does. The ingestor snapshots
-  it at every run. When ARPAE dropped the exposure from the label (2026-10-06) the marts kept
-  working from the earlier snapshots, with a frozen reference seed for new installations;
-  the change had first emptied `mart_traffic_vs_background` without failing any test, so an
-  error-level test now requires both traffic and background stations to exist.
+- **Station type ingested, not typed in**: the registry spreadsheet does not say whether a
+  station measures traffic or background. It was first read from the daily bulletin; when
+  ARPAE dropped the exposure from the bulletin label (2026-10-06),
+  `mart_traffic_vs_background` emptied without failing any test. The type is now read from
+  the station registry of the ARPAE REST service (`qa_stazioni`), with the same label form
+  so that old and new snapshots read alike; an error-level test requires both traffic and
+  background stations to exist, and a frozen reference seed covers the case of a source
+  that stops stating the exposure.
 - **Altair** for charts: it ships with Streamlit, no extra plotting dependency.
 - **A connection per query, read-only**: no state shared between sessions, and the
   dashboard cannot modify the warehouse.

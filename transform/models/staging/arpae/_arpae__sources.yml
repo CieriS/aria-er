@@ -29,6 +29,6 @@ sources:
           external_location: "read_parquet('{{ var('raw_dir') }}/arpae/stations/*/*.parquet')"
       - name: station_types
         identifier: arpae_station_types
-        description: Station type snapshots from the ARPAE daily bulletin, one directory per extraction date.
+        description: Station type snapshots from the ARPAE station registry, one directory per extraction date.
         config:
           external_location: "read_parquet('{{ var('raw_dir') }}/arpae/station_types/*/*.parquet')"

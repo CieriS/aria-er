@@ -8,8 +8,8 @@ select
     cast(station_id as integer) as station_id,
     station_name as bulletin_station_name,
     province,
-    -- Until 2026-10-05 labels read like 'Urbana Traffico' (an area and an exposure);
-    -- since then the bulletin publishes the area only.
+    -- Labels read like 'Urbana Traffico' (an area and an exposure). Snapshots taken from
+    -- the daily bulletin between 2026-10-06 and 2026-10-08 carry the area only.
     case
         when lower(type_label) like '%traffico%' then 'traffic'
         when lower(type_label) like '%fondo%' then 'background'
