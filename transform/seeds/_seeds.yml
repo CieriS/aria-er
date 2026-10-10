@@ -51,6 +51,7 @@ seeds:
           - accepted_values:
               arguments:
                 values: [60, 1440]
+                quote: false
       - name: max_plausible_ugm3
         description: Values above this are flagged as implausible. Empty means no check.
 

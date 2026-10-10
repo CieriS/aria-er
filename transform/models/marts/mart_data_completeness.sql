@@ -14,7 +14,7 @@ series as (
         min(measurement_date) as first_date,
         max(measurement_date) as last_date
     from daily
-    group by all
+    group by station_id, pollutant_id, pollutant_code, expected_measurements
 
 ),
 

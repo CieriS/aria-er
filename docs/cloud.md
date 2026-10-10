@@ -3,11 +3,20 @@
 The same pipeline with Cloud Storage as the raw layer and BigQuery as the warehouse, sized
 to stay inside the GCP free tier.
 
-> **Status.** The code, the Terraform configuration and the CI are in place and verified
-> locally (Terraform `validate`, the storage backend on an in-memory object store, all
-> dbt models unchanged on DuckDB after the portability rewrite). The pipeline has **not yet
-> been run on a real GCP project**: the BigQuery SQL is only syntax-checked, and the steps
-> below are untested end to end. Expect small fixes at the first real run.
+> **Status.** The pipeline has **not yet been run on a real GCP project**. What is verified
+> without one:
+>
+> - **BigQuery SQL**: `make bigquery-dialect-check` compiles every model for the BigQuery
+>   adapter, executes it on the open-source BigQuery emulator (whose SQL analyser is the one
+>   BigQuery uses) together with 104 tests, and finds the results identical to the DuckDB
+>   build of the same fixtures. It caught three errors the syntax check had missed.
+> - **Storage backend**: tested on an in-memory object store, byte-identical to local files.
+> - **Terraform**: `fmt` and `validate`.
+>
+> Still unverified until the first real run: writing to an actual bucket, the external
+> tables over Cloud Storage, IAM, dbt's own BigQuery materialisations (merge, snapshot,
+> seed load) and the execution of the window frame of the 8-hour ozone mean, which the
+> emulator can analyse but not run.
 
 ## What runs where
 
@@ -29,6 +38,7 @@ service, which is what keeps the cost at zero.
 | Storage backend of the ingestor | `sink-parquet`, Cargo feature `gcs` |
 | BigQuery target and dialect macros | [`transform/profiles.yml`](../transform/profiles.yml), [`transform/macros/dialect.sql`](../transform/macros/dialect.sql) |
 | Comparison between the two warehouses | [`transform/scripts/compare_targets.py`](../transform/scripts/compare_targets.py) |
+| BigQuery SQL check without GCP | [`transform/scripts/check_bigquery_dialect.py`](../transform/scripts/check_bigquery_dialect.py), `make bigquery-dialect-check` |
 
 ## Setup
 

@@ -11,6 +11,7 @@ dependency cache:
 |---|---|
 | [Rust](../.github/workflows/rust.yml) | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` |
 | [Python](../.github/workflows/python.yml) | `ruff format --check`, `ruff check`, `mypy --strict`, `pytest`, for `orchestration` and `dashboard` |
+| [dbt](../.github/workflows/dbt.yml), second job | The same models compiled for BigQuery and executed on the BigQuery emulator, results compared with DuckDB (`make bigquery-dialect-check`) |
 | [Terraform](../.github/workflows/terraform.yml) | `terraform fmt -check`, `validate`, and `plan` (never `apply`) when GCP settings exist; only on changes under `infra/` |
 | [dbt](../.github/workflows/dbt.yml) | `dbt build` on DuckDB with the committed fixtures, twice (full and incremental) |
 

@@ -18,7 +18,7 @@ daily as (
         count(case when is_valid then 1 end) as valid_measurements,
         cast(1440 / averaging_minutes as integer) as expected_measurements
     from measurements
-    group by all
+    group by station_id, pollutant_id, pollutant_code, averaging_minutes, measurement_date
 
 )
 

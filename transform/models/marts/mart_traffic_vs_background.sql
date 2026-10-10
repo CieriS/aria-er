@@ -1,7 +1,7 @@
 with daily as (
 
     select
-        stations.municipality,
+        registry.municipality,
         classification.station_type,
         daily.pollutant_id,
         daily.pollutant_code,
@@ -11,10 +11,10 @@ with daily as (
     from {{ ref('int_measurements_daily') }} as daily
     inner join {{ ref('int_station_types_current') }} as classification
         on daily.station_id = classification.station_id
-    inner join {{ ref('int_stations_current') }} as stations
-        on daily.station_id = stations.station_id
+    inner join {{ ref('int_stations_current') }} as registry
+        on daily.station_id = registry.station_id
     where daily.is_valid_day
-    group by all
+    group by registry.municipality, classification.station_type, daily.pollutant_id, daily.pollutant_code, daily.measurement_date
 
 ),
 
@@ -54,4 +54,4 @@ select
     avg(traffic_ugm3) - avg(background_ugm3) as difference_ugm3,
     avg(traffic_ugm3) / nullif(avg(background_ugm3), 0) as traffic_to_background_ratio
 from paired
-group by all
+group by municipality, pollutant_id, pollutant_code, month

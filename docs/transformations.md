@@ -33,7 +33,9 @@ plausibility bound per pollutant) and `station_types_reference` (the last statio
 ARPAE published in its bulletins, used only if no ingested snapshot states the exposure).
 
 The models run unchanged on DuckDB and on BigQuery: SQL that differs between the two is
-confined to [`macros/dialect.sql`](../transform/macros/dialect.sql) (see [cloud.md](cloud.md)).
+confined to [`macros/dialect.sql`](../transform/macros/dialect.sql), and
+`make bigquery-dialect-check` executes the BigQuery version of every model on an emulator and
+compares it with DuckDB (see [cloud.md](cloud.md)).
 
 Rules applied:
 

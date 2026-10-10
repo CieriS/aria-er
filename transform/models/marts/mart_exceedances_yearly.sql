@@ -43,7 +43,7 @@ daily_max_8h_means as (
         1 as periods_per_day
     from {{ ref('int_o3_8h_rolling') }}
     where is_valid_window
-    group by all
+    group by station_id, pollutant_id, measurement_date
     -- A day counts only with enough valid 8-hour windows.
     having count(*) / 24 >= {{ var('min_coverage') }}
 
@@ -74,7 +74,7 @@ yearly as (
     inner join limits
         on periods.pollutant_id = limits.pollutant_id
         and periods.metric = limits.metric
-    group by all
+    group by periods.station_id, periods.pollutant_id, periods.metric, year
 
 )
 

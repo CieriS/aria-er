@@ -26,7 +26,8 @@ free-tier use (see `docs/cloud.md`).
 
 **3. One set of models, dialect differences in macros.**
 The models are written in the SQL both engines accept (case expressions instead of
-`FILTER`, `extract()` instead of `year()`, dbt's `datediff` and `date_trunc`). What cannot
+`FILTER`, `extract()` instead of `year()`, explicit `GROUP BY` columns, dbt's `datediff`
+and `date_trunc`). What cannot
 be shared is in `macros/dialect.sql`, dispatched by adapter: the naive-UTC timestamp type
 (`TIMESTAMP` on DuckDB, `DATETIME` on BigQuery), date construction, a numeric key for
 `RANGE` window frames, the date spine, and the incremental strategy (`delete+insert`
@@ -37,7 +38,11 @@ against `merge`).
 - The rewrite changed no result on DuckDB: every mart and intermediate model was compared
   row by row before and after.
 - Nothing runs permanently in the cloud; there is no compute to pay for.
-- The BigQuery side is unverified until the first run on a real project: only its syntax
-  was checked. `make cloud-compare` is the acceptance test.
+- Until the first run on a real project the BigQuery side is checked on the open-source
+  BigQuery emulator (`make bigquery-dialect-check`): every model is analysed and executed,
+  and the results match DuckDB on the fixtures. That check found what a syntax parser had
+  not: a numeric column compared with quoted values, `GROUP BY ALL` (replaced by explicit
+  columns, which every engine accepts) and a table alias shadowed by a column alias in
+  `GROUP BY`. `make cloud-compare` on real data remains the acceptance test.
 - External tables need files to exist, hence the two Terraform passes.
 - Region `us-central1`: the only way to stay in the Cloud Storage free tier.

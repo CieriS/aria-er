@@ -28,7 +28,7 @@ daily as (
             case when wind_speed_ms is not null and precipitation_mm is not null then 1 end
         ) as hours
     from hourly
-    group by all
+    group by location_id, weather_date
 
 )
 

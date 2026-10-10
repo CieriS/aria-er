@@ -52,7 +52,8 @@ What does not work, is approximate, or is still manual.
   mapping and a convention check, not just a new URL. Until then the daily schedule ingests nothing
   new and the freshness check stays in warning. See [data.md](data.md).
 - **The cloud target has not been run on a real GCP project yet.** Terraform is validated, the
-  storage backend is tested on an in-memory object store and the BigQuery SQL is syntax-checked
-  only. See [cloud.md](cloud.md).
+  storage backend is tested on an in-memory object store, and the BigQuery SQL is executed on an
+  emulator with results identical to DuckDB. External tables, IAM and dbt's BigQuery
+  materialisations are unverified. See [cloud.md](cloud.md).
 - On BigQuery every build re-reads the Parquet files behind the external tables; with a much larger
   archive this would leave the free tier of read operations.

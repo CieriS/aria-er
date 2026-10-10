@@ -64,7 +64,7 @@ aggregated as (
         avg(case when is_rainy then pm10_ugm3 end) as pm10_mean_rainy_ugm3,
         avg(case when not is_rainy then pm10_ugm3 end) as pm10_mean_dry_ugm3
     from paired
-    group by all
+    group by station_id, station_name, municipality, season
 
 )
 
