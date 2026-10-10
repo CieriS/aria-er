@@ -62,7 +62,7 @@ models:
       - name: unit_original
         description: Unit as published.
       - name: validation_flag
-        description: Near-real-time validation flag (M / G); null for archive rows.
+        description: Near-real-time validation flag (T temporary, G daily, M monthly, S six-monthly); null for archive rows.
       - name: source_name
         description: Origin of the row.
         data_tests:

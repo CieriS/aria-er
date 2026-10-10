@@ -93,3 +93,16 @@ giornalieri e i parametri orari condividono la stessa tabella.
   Drive serve solo per il backfill.
 - Conservare in raw valore originale, unità, `v_flag` e il timestamp originale; la conversione a UTC dipende
   dalla conferma della timezone (punto 2).
+
+## 6. Aggiornamento del 10/10/2026
+
+Due ipotesi di questo report sono state poi confermate o corrette da documentazione ARPAE:
+
+- **`v_flag`**: il significato è nella descrizione della risorsa CKAN. `T` = validazione temporanea
+  (controllo automatico), `G` = giornaliera, `M` = mensile, `S` = semestrale. Quindi `M` non è
+  "provvisorio" come ipotizzato al punto 4.2: è un livello di validazione **più alto** di `G`.
+- **Timezone**: l'archivio REST `qa_archivio_dati_public` pubblica gli orari con offset esplicito
+  `+01:00` anche in ottobre: UTC+1 fisso, come ipotizzato.
+
+Sorgenti scoperte dopo questo report (dettagli in [data.md](data.md)): anagrafica stazioni
+`https://apps.arpae.it/REST/qa_stazioni` e archivio misure `https://apps.arpae.it/REST/qa_archivio_dati_public`.

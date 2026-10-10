@@ -115,7 +115,8 @@ Everything in the diagram exists except the cloud warehouse, which is the next p
 - [x] **6. Full CI** + Docker Compose
 - [ ] **7. Cloud** — GCS + BigQuery via Terraform, same dbt models with a different target
   (code, Terraform and CI ready; the end-to-end run on GCP is still to do)
-- [ ] **8. (Optional) Streaming** — only if justified in an ADR
+- [x] **8. (Optional) Streaming** — evaluated and not built: the sources are daily batches
+  ([ADR 0007](docs/adr/0007-no-streaming.md), awaiting approval)
 
 A phase is done when it works end-to-end, has tests, and the documentation is updated.
 
