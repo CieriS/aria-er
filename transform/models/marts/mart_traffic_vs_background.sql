@@ -9,7 +9,7 @@ with daily as (
         avg(daily.daily_mean_ugm3) as mean_ugm3,
         count(*) as stations
     from {{ ref('int_measurements_daily') }} as daily
-    inner join {{ ref('stg_arpae__station_types') }} as classification
+    inner join {{ ref('int_station_types_current') }} as classification
         on daily.station_id = classification.station_id
     inner join {{ ref('int_stations_current') }} as stations
         on daily.station_id = stations.station_id

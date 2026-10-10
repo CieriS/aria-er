@@ -13,7 +13,8 @@ least once.
 | staging | `stg_arpae__measurements` | Near-real-time rows: typed, UTC timestamp, value in µg/m³ |
 | staging | `stg_arpae__measurements_archive` | Validated archive measurements, same shape as the near-real-time ones |
 | staging | `stg_arpae__stations` | Latest extraction of the station registry |
-| staging | `stg_arpae__station_types` | Traffic or background, and area type, from the ARPAE daily bulletin |
+| staging | `stg_arpae__station_types` | Station type snapshots from the ARPAE daily bulletin, label normalised |
+| intermediate | `int_station_types_current` | Current exposure and area of each station, and where the exposure comes from |
 | snapshot | `snap_arpae__stations` | Type 2 history of the registry |
 | intermediate | `int_measurements_deduplicated` | Incremental fact, one row per natural key, with quality flags |
 | intermediate | `int_measurements_daily` | Daily mean, maximum and coverage |
@@ -28,8 +29,8 @@ least once.
 | mart | `mart_traffic_vs_background` | Monthly traffic vs background means in the same municipality |
 
 Seeds: `air_quality_limits` (legal thresholds) and `arpae_pollutants` (averaging period and
-plausibility bound per pollutant). The station type is not a seed: it is ingested from the
-ARPAE daily bulletin.
+plausibility bound per pollutant) and `station_types_reference` (the last station classification
+ARPAE published with the exposure, used when the ingested bulletins do not state it).
 
 Rules applied:
 

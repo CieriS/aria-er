@@ -177,3 +177,34 @@ models:
       - name: is_valid_day
         description: The day has enough hours to be used.
         data_tests: [not_null]
+
+  - name: int_station_types_current
+    description: >
+      Current type of each station. The exposure (traffic or background) comes from the
+      latest bulletin that states it, then from the reference seed; the area from the
+      latest bulletin. station_type_source says which one was used.
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [unique, not_null]
+      - name: station_type
+        description: What the station is exposed to; other when no source says.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [traffic, background, industrial, other]
+      - name: area_type
+        description: Kind of area around the station.
+      - name: station_type_source
+        description: Where the exposure comes from.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [latest_bulletin, earlier_bulletin, reference, unknown]
+      - name: type_label_original
+        description: Label of the latest bulletin, as published.
+      - name: bulletin_id
+        description: Latest bulletin seen for the station.
+      - name: extracted_on
+        description: Date that bulletin was downloaded.

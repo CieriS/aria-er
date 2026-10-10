@@ -2,33 +2,26 @@ with source as (
 
     select * from {{ source('arpae_raw', 'station_types') }}
 
-),
-
-latest as (
-
-    select * from source
-    where extracted_on = (select max(extracted_on) from source)
-
 )
 
 select
     cast(station_id as integer) as station_id,
     station_name as bulletin_station_name,
     province,
-    -- Labels read like 'Urbana Traffico': an area word and an exposure word.
+    -- Until 2026-10-05 labels read like 'Urbana Traffico' (an area and an exposure);
+    -- since then the bulletin publishes the area only.
     case
-        when type_label ilike '%traffico%' then 'traffic'
-        when type_label ilike '%fondo%' then 'background'
-        when type_label ilike '%industriale%' then 'industrial'
-        else 'other'
+        when lower(type_label) like '%traffico%' then 'traffic'
+        when lower(type_label) like '%fondo%' then 'background'
+        when lower(type_label) like '%industriale%' then 'industrial'
     end as station_type,
     case
-        when type_label ilike '%suburban%' then 'suburban'
-        when type_label ilike '%urban%' then 'urban'
-        when type_label ilike '%rural%' then 'rural'
-        when type_label ilike '%remot%' then 'remote'
+        when lower(type_label) like '%remot%' then 'remote'
+        when lower(type_label) like '%suburban%' then 'suburban'
+        when lower(type_label) like '%urban%' then 'urban'
+        when lower(type_label) like '%rural%' then 'rural'
     end as area_type,
     type_label as type_label_original,
     bulletin_id,
     extracted_on
-from latest
+from source

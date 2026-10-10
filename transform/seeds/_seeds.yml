@@ -53,3 +53,26 @@ seeds:
                 values: [60, 1440]
       - name: max_plausible_ugm3
         description: Values above this are flagged as implausible. Empty means no check.
+
+  - name: station_types_reference
+    description: >
+      Last classification of the stations published by ARPAE with the exposure (bulletin of
+      2026-10-04). Used only for stations whose bulletins in the raw layer do not state it,
+      as on an installation created after the format change.
+    columns:
+      - name: station_id
+        description: Canonical station code.
+        data_tests: [unique, not_null]
+      - name: station_type
+        description: Exposure at the time of the reference bulletin.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [traffic, background, industrial, other]
+      - name: area_type
+        description: Kind of area around the station.
+      - name: source_label
+        description: Label as published in the reference bulletin.
+      - name: bulletin_id
+        description: Reference bulletin.

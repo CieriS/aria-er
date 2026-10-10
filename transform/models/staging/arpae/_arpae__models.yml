@@ -109,23 +109,27 @@ models:
 
   - name: stg_arpae__station_types
     description: >
-      Latest type of each station (traffic, background, ...) and of its area, normalised
-      from the label of the ARPAE daily bulletin. The registry does not carry this.
+      Station type snapshots from the ARPAE daily bulletin, one row per station and
+      extraction, with the label normalised into exposure and area. The label format
+      changed on 2026-10-06 and no longer carries the exposure.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_id, extracted_on]
     columns:
       - name: station_id
         description: Canonical station code.
-        data_tests: [unique, not_null]
+        data_tests: [not_null]
       - name: bulletin_station_name
         description: Station name as written in the bulletin.
       - name: province
         description: Province code.
       - name: station_type
-        description: What the station is exposed to; other covers local and mobile stations.
+        description: Exposure read from the label; null when the label does not say.
         data_tests:
-          - not_null
           - accepted_values:
               arguments:
-                values: [traffic, background, industrial, other]
+                values: [traffic, background, industrial]
       - name: area_type
         description: Kind of area around the station; null when the label does not say.
         data_tests:

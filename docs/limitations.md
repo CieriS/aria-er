@@ -18,8 +18,12 @@ What does not work, is approximate, or is still manual.
 - A *corrected* value in an archive file already loaded, older than the 30-day lookback, needs
   `dbt build --full-refresh` to reach the marts. New archive rows are picked up on their own.
 - An 8-hour window ending on a missing hour is not produced; days with many gaps may lack a few windows.
-- Station types follow the latest ARPAE bulletin; their history is kept in raw (one snapshot per
-  day) but not yet modelled as a type 2 dimension.
+- **ARPAE no longer publishes the station exposure.** Since the bulletin of 2026-10-06 the type label
+  gives the area only (`Urbana`), not traffic or background. The exposure now comes from the last
+  bulletin that stated it, or from a reference seed frozen at 2026-10-04: a station reclassified by
+  ARPAE after that date is not picked up. A `warn` test lists the stations in this situation.
+- The history of station types is kept in raw (one snapshot per day) but not modelled as a type 2
+  dimension.
 - The registry snapshot has few extractions so far, so little history yet.
 - dbt tests run against local data, not fixtures; `make test` therefore needs `raw/`.
 - The schedule and UI backfills need the local daemon running; nothing runs when the machine is off.

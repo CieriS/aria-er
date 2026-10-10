@@ -16,6 +16,13 @@ All sources come from the ARPAE CKAN portal, dataset
 
 Full details, schema and data quality findings: [docs/data-exploration.md](data-exploration.md).
 
+## Upstream changes observed
+
+- **2026-10-06, daily bulletin**: `tipostazione` went from `Urbana Traffico` / `Urbana Fondo` to
+  the area alone (`Urbana`), and the records gained `locality` and `originalidstazione`. Nothing
+  failed: the ingestor stores the label as published, and the classification downstream silently
+  became "unknown" for every station. See [limitations.md](limitations.md) for how it is handled.
+
 ## Data quality findings and how they are handled
 
 Phase 0 analysed one year (2025) of data for the Bologna stations. Each issue maps to a design decision:
