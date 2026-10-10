@@ -76,3 +76,24 @@ up:
 
 down:
 	docker compose down
+
+# --- Cloud (GCP): see docs/cloud.md. Needs credentials in the environment and
+# AQ_GCP_PROJECT, AQ_GCS_BUCKET set to the project and to the raw bucket. ---
+.PHONY: cloud-ingest cloud-transform cloud-compare
+
+# Same ingestion as `make ingest`, written to the bucket instead of raw/.
+cloud-ingest:
+	@test -n "$(AQ_GCS_BUCKET)" || (echo "set AQ_GCS_BUCKET to the raw bucket" && exit 1)
+	cargo build $(MANIFEST) --release --bin aq-ingest --features gcs
+	AQ_SINK__STORAGE=gcs AQ_SINK__GCS_BUCKET=$(AQ_GCS_BUCKET) ingestor/target/release/aq-ingest --config $(CONFIG) run $(WINDOW)
+	AQ_SINK__STORAGE=gcs AQ_SINK__GCS_BUCKET=$(AQ_GCS_BUCKET) ingestor/target/release/aq-ingest --config $(CONFIG) weather $(WINDOW)
+	AQ_SINK__STORAGE=gcs AQ_SINK__GCS_BUCKET=$(AQ_GCS_BUCKET) ingestor/target/release/aq-ingest --config $(CONFIG) archive
+
+# The same dbt models, built in BigQuery.
+cloud-transform:
+	@test -n "$(AQ_GCP_PROJECT)" || (echo "set AQ_GCP_PROJECT to the GCP project" && exit 1)
+	cd transform && uv run --group cloud dbt build --profiles-dir . --target bigquery
+
+# Checks that mart_exceedances_yearly holds the same rows in DuckDB and in BigQuery.
+cloud-compare:
+	cd transform && uv run --group cloud python scripts/compare_targets.py
