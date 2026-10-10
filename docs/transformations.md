@@ -32,6 +32,9 @@ Seeds: `air_quality_limits` (legal thresholds) and `arpae_pollutants` (averaging
 plausibility bound per pollutant) and `station_types_reference` (the last station classification
 ARPAE published with the exposure, used when the ingested bulletins do not state it).
 
+The models run unchanged on DuckDB and on BigQuery: SQL that differs between the two is
+confined to [`macros/dialect.sql`](../transform/macros/dialect.sql) (see [cloud.md](cloud.md)).
+
 Rules applied:
 
 - **Legal day.** Days and years are counted in ARPAE local standard time (UTC+1 all year).

@@ -11,6 +11,7 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 | [0003](adr/0003-historical-archive-read-by-dbt.md) | Archive read by dbt from CSV | superseded by 0005 |
 | [0004](adr/0004-generic-source-and-sink-traits.md) | `Source` and `Sink` generic over the record type | accepted |
 | [0005](adr/0005-archive-loaded-by-the-ingestor.md) | Archive loaded by the ingestor into its own raw dataset | accepted |
+| [0006](adr/0006-gcs-and-bigquery-as-a-second-target.md) | Cloud Storage and BigQuery as a second target of the same pipeline | accepted, not yet run on GCP |
 
 ## Phase 1 — Rust ingestor
 
@@ -104,3 +105,17 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 - **Named volumes, not bind mounts**, so a clone needs no local directories or permissions.
 - **dbt in CI runs on committed fixtures** (a small real slice written with the ingestor's
   schema), built twice to cover the incremental path, with no network.
+
+## Phase 7 — cloud (GCP)
+
+- **Storage backend inside the sink, GCS behind a Cargo feature**, external tables in
+  BigQuery, and one set of models with the dialect differences in macros
+  ([ADR 0006](adr/0006-gcs-and-bigquery-as-a-second-target.md)).
+- **No compute in the cloud.** The ingestor and dbt are run with credentials from wherever
+  they already run; the cloud holds only data.
+- **Service accounts without keys in Terraform.** A key in the state would be a secret in
+  a bucket; keys are created by hand when needed.
+- **`us-central1`**, because the Cloud Storage free tier does not cover European regions.
+- **Two Terraform passes**: external tables are enabled after the first ingestion, since
+  BigQuery needs files to exist under their prefix.
+- **CI plans, never applies**, and only where the repository has the GCP settings.
