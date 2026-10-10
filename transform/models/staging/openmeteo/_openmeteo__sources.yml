@@ -3,8 +3,10 @@ version: 2
 sources:
   - name: openmeteo_raw
     description: Raw layer written by the Rust ingestor from the Open-Meteo archive API.
+    schema: "{{ var('raw_dataset') }}"
     tables:
       - name: weather
+        identifier: openmeteo_weather
         description: One row per weather location and hour.
         config:
           external_location: "read_parquet('{{ var('raw_dir') }}/openmeteo/weather/*/*/*.parquet')"

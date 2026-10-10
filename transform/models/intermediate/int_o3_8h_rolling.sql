@@ -28,8 +28,8 @@ rolling as (
     from hourly
     window eight_hours as (
         partition by station_id, pollutant_id
-        order by measured_at_utc
-        range between interval 7 hour preceding and current row
+        order by {{ hours_since_epoch('measured_at_utc') }}
+        range between 7 preceding and current row
     )
 
 )

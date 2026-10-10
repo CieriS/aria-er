@@ -11,7 +11,7 @@ station_years as (
         station_id,
         pollutant_id,
         pollutant_code,
-        year(measurement_date) as year,
+        extract(year from measurement_date) as year,
         avg(daily_mean_ugm3) as annual_mean_ugm3,
         count(*) as valid_days
     from daily
@@ -23,7 +23,7 @@ covered as (
 
     select
         *,
-        valid_days / date_diff('day', make_date(year, 1, 1), make_date(year + 1, 1, 1))
+        valid_days / {{ days_in_year('year') }}
             as year_coverage
     from station_years
 

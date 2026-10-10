@@ -27,9 +27,9 @@ expected as (
         series.pollutant_id,
         series.pollutant_code,
         series.expected_measurements,
-        cast(days.generate_series as date) as measurement_date
+        cast(spine_date as date) as measurement_date
     from series,
-        generate_series(series.first_date, series.last_date, interval 1 day) as days
+        {{ unnest_days('series.first_date', 'series.last_date') }}
 
 )
 

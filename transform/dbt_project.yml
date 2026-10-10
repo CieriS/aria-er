@@ -11,6 +11,8 @@ macro-paths: ["macros"]
 vars:
   # Raw layer written by the ingestor, relative to this directory.
   raw_dir: "../raw"
+  # BigQuery dataset holding the external tables over the raw layer (cloud target only).
+  raw_dataset: aria_er_raw
   # Offset of ARPAE local standard time from UTC; legal days are counted in this time.
   local_utc_offset_hours: 1
   # Must cover the ingestor reprocessing window (run.reprocess_window_days).
@@ -42,14 +44,14 @@ seeds:
     air_quality_limits:
       +column_types:
         pollutant_id: integer
-        limit_ugm3: double
+        limit_ugm3: "{{ 'float64' if target.type == 'bigquery' else 'double' }}"
         max_exceedances_per_year: integer
     station_types_reference:
       +column_types:
         station_id: integer
-        bulletin_id: varchar
+        bulletin_id: "{{ 'string' if target.type == 'bigquery' else 'varchar' }}"
     arpae_pollutants:
       +column_types:
         pollutant_id: integer
         averaging_minutes: integer
-        max_plausible_ugm3: double
+        max_plausible_ugm3: "{{ 'float64' if target.type == 'bigquery' else 'double' }}"

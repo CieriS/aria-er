@@ -1,9 +1,25 @@
 aria_er:
   target: dev
   outputs:
+    # Local warehouse: a DuckDB file reading the raw Parquet files in place.
     dev:
       type: duckdb
       path: "{{ env_var('AQ_DUCKDB_PATH', '../warehouse/aria_er.duckdb') }}"
       threads: 4
       settings:
         TimeZone: UTC
+
+    # Cloud warehouse: BigQuery, reading the raw layer through external tables.
+    # Credentials come from the environment (GOOGLE_APPLICATION_CREDENTIALS or
+    # `gcloud auth application-default login`). See docs/cloud.md.
+    bigquery:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('AQ_GCP_PROJECT', 'set-AQ_GCP_PROJECT') }}"
+      dataset: "{{ env_var('AQ_BIGQUERY_DATASET', 'aria_er') }}"
+      location: "{{ env_var('AQ_GCP_REGION', 'us-central1') }}"
+      threads: 4
+      priority: interactive
+      # A query scanning more than this is refused: a guard on cost, far above what
+      # the project needs.
+      maximum_bytes_billed: 10000000000

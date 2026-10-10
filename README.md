@@ -34,7 +34,8 @@ historized and tested dataset that answers questions like:
 
 🚧 Work in progress — phases 0 to 6 are complete (exploration, Rust ingestor, dbt models,
 Dagster orchestration, Open-Meteo weather, Streamlit dashboard, containers and CI). See the
-[roadmap](#roadmap).
+[roadmap](#roadmap). Phase 7 (Google Cloud) is implemented but not yet run on a real project:
+see [docs/cloud.md](docs/cloud.md).
 
 ## Quick start
 
@@ -99,6 +100,7 @@ Everything in the diagram exists except the cloud warehouse, which is the next p
 | Dagster assets, partitions, schedule, sensor, checks | [docs/orchestration.md](docs/orchestration.md) |
 | Dashboard pages and structure | [docs/dashboard.md](docs/dashboard.md) |
 | CI workflows, fixtures, branch protection | [docs/ci.md](docs/ci.md) |
+| Google Cloud: setup, cost, teardown | [docs/cloud.md](docs/cloud.md) |
 | Design decisions by phase and ADR index | [docs/decisions.md](docs/decisions.md), [docs/adr/](docs/adr/) |
 | Known limitations | [docs/limitations.md](docs/limitations.md) |
 
@@ -112,6 +114,7 @@ Everything in the diagram exists except the cloud warehouse, which is the next p
 - [x] **5. Dashboard** — Streamlit
 - [x] **6. Full CI** + Docker Compose
 - [ ] **7. Cloud** — GCS + BigQuery via Terraform, same dbt models with a different target
+  (code, Terraform and CI ready; the end-to-end run on GCP is still to do)
 - [ ] **8. (Optional) Streaming** — only if justified in an ADR
 
 A phase is done when it works end-to-end, has tests, and the documentation is updated.
@@ -135,7 +138,8 @@ dashboard/            Streamlit app: data access, charts, pages, tests
 scratch/              throwaway exploration scripts
 docker/               Dockerfiles for ingestor, orchestration and dashboard
 docker-compose.yml    local stack
-Makefile              ingest / transform / orchestrate / backfill / dashboard / up / down / test / lint
+infra/                Terraform for GCP: bucket, BigQuery datasets, service accounts
+Makefile              ingest / transform / orchestrate / backfill / dashboard / up / down / test / lint / cloud-*
 ```
 
 ## License and data

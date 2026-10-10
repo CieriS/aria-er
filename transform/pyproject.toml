@@ -7,3 +7,7 @@ dependencies = ["dbt-duckdb>=1.9"]
 
 [tool.uv]
 package = false
+
+[dependency-groups]
+# Only for the BigQuery target: `uv sync --group cloud`.
+cloud = ["dbt-bigquery>=1.9"]

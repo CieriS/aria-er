@@ -46,3 +46,8 @@ What does not work, is approximate, or is still manual.
 - The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
 - No source covers early 2026 at the moment: it is not yet in the historical archive and is already outside the near-real-time window.
 - The meaning of `v_flag` and the timezone of the timestamps are inferred, not documented by ARPAE.
+- **The cloud target has not been run on a real GCP project yet.** Terraform is validated, the
+  storage backend is tested on an in-memory object store and the BigQuery SQL is syntax-checked
+  only. See [cloud.md](cloud.md).
+- On BigQuery every build re-reads the Parquet files behind the external tables; with a much larger
+  archive this would leave the free tier of read operations.

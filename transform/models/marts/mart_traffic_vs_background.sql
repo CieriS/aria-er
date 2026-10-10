@@ -45,7 +45,7 @@ select
     municipality,
     pollutant_id,
     pollutant_code,
-    cast(date_trunc('month', measurement_date) as date) as month,
+    cast({{ dbt.date_trunc('month', 'measurement_date') }} as date) as month,
     count(*) as days,
     max(traffic_stations) as traffic_stations,
     max(background_stations) as background_stations,
