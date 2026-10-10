@@ -23,6 +23,8 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SinkConfig {
+    pub storage: StorageKind,
+    pub gcs_bucket: String,
     pub measurements_dir: PathBuf,
     pub archive_measurements_dir: PathBuf,
     pub stations_dir: PathBuf,
@@ -40,6 +42,13 @@ pub struct RunConfig {
 #[serde(deny_unknown_fields)]
 pub struct LogConfig {
     pub format: LogFormat,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum StorageKind {
+    Local,
+    Gcs,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -106,6 +115,7 @@ mod tests {
         assert_eq!(config.arpae.utc_offset_hours, 1);
         assert_eq!(config.log.format, LogFormat::Text);
         assert_eq!(config.openmeteo.coordinate_decimals, 1);
+        assert_eq!(config.sink.storage, StorageKind::Local);
     }
 
     #[test]

@@ -27,6 +27,9 @@ pub enum SinkError {
         #[source]
         source: std::io::Error,
     },
+    /// An object store rejected a read or a write.
+    #[error("storage error on {path}: {message}")]
+    Storage { path: String, message: String },
     #[error("Parquet error on {path}: {message}")]
     Parquet { path: String, message: String },
     /// An existing file does not have the schema this sink writes.

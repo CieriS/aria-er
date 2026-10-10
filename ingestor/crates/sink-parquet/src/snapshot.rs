@@ -9,7 +9,7 @@ use arrow_schema::{DataType, Field, Schema};
 use chrono::NaiveDate;
 use tracing::info;
 
-use crate::{parquet_error, write_atomically};
+use crate::{parquet_error, write_parquet, LocalStorage, Storage};
 
 /// Reference data stored as one dated file per extraction.
 pub trait SnapshotRecord {
@@ -31,14 +31,26 @@ pub trait SnapshotRecord {
 /// Writes the snapshot of one extraction date as
 /// `extracted_on=YYYY-MM-DD/<file>`, replacing a snapshot of the same day.
 pub struct SnapshotSink<R> {
+    storage: Arc<dyn Storage>,
     root: PathBuf,
     extracted_on: NaiveDate,
     record: PhantomData<R>,
 }
 
 impl<R> SnapshotSink<R> {
+    /// A sink on the local filesystem.
     pub fn new(root: impl Into<PathBuf>, extracted_on: NaiveDate) -> Self {
+        Self::with_storage(Arc::new(LocalStorage), root, extracted_on)
+    }
+
+    /// A sink on any storage; `root` is the prefix of every file.
+    pub fn with_storage(
+        storage: Arc<dyn Storage>,
+        root: impl Into<PathBuf>,
+        extracted_on: NaiveDate,
+    ) -> Self {
         Self {
+            storage,
             root: root.into(),
             extracted_on,
             record: PhantomData,
@@ -70,7 +82,7 @@ impl<R: SnapshotRecord> Sink for SnapshotSink<R> {
 
         let batch = RecordBatch::try_new(Arc::clone(&schema), columns)
             .map_err(|e| parquet_error(&path, e))?;
-        write_atomically(&path, schema, &batch)?;
+        write_parquet(self.storage.as_ref(), &path, schema, &batch)?;
         info!(path = %path.display(), rows = rows.len(), "wrote snapshot");
         Ok(WriteReport {
             partitions_written: 1,

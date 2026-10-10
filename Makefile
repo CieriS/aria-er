@@ -55,7 +55,7 @@ dashboard:
 
 # The dbt tests run against the data in raw/: run `make ingest` at least once before.
 test:
-	cargo test $(MANIFEST)
+	cargo test $(MANIFEST) --all-features
 	mkdir -p warehouse
 	$(DBT) build --profiles-dir .
 	cd orchestration && uv run pytest -q
@@ -64,6 +64,7 @@ test:
 lint:
 	cargo fmt $(MANIFEST) --all -- --check
 	cargo clippy $(MANIFEST) --all-targets -- -D warnings
+	cargo clippy $(MANIFEST) --all-targets --all-features -- -D warnings
 	cd orchestration && uv run ruff format --check . && uv run ruff check . && uv run mypy
 	cd dashboard && uv run ruff format --check . && uv run ruff check . && uv run mypy
 

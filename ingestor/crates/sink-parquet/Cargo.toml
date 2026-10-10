@@ -5,13 +5,24 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[features]
+# Google Cloud Storage as a storage backend (pulls in an async runtime and an HTTP client).
+gcs = ["dep:object_store", "dep:tokio"]
+
 [dependencies]
 aq-core.workspace = true
 arrow-array = "60"
 arrow-schema = "60"
+bytes = "1"
 chrono.workspace = true
 parquet = { version = "60", default-features = false, features = ["arrow", "snap"] }
+object_store = { version = "0.14", default-features = false, features = ["gcp"], optional = true }
+tokio = { version = "1", default-features = false, features = ["rt"], optional = true }
 tracing.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+
+[[test]]
+name = "object_storage"
+required-features = ["gcs"]

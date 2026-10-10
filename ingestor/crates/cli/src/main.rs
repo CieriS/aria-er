@@ -4,18 +4,22 @@ mod config;
 mod pipeline;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use aq_core::{DateWindow, Source};
 use aq_http::UreqTransport;
-use aq_sink_parquet::{MeasurementSink, StationSnapshotSink, StationTypeSnapshotSink, WeatherSink};
+use aq_sink_parquet::{
+    LocalStorage, MeasurementSink, StationSnapshotSink, StationTypeSnapshotSink, Storage,
+    WeatherSink,
+};
 use aq_source_arpae::{ArpaeArchive, ArpaeSource};
 use aq_source_openmeteo::OpenMeteoSource;
 use chrono::{Duration, NaiveDate, Utc};
 use clap::{Args, Parser, Subcommand};
 use tracing::info;
 
-use crate::config::{Config, LogFormat};
+use crate::config::{Config, LogFormat, SinkConfig, StorageKind};
 
 #[derive(Parser)]
 #[command(name = "aq-ingest", version, about)]
@@ -89,6 +93,29 @@ fn main() -> Result<()> {
     }
 }
 
+/// The storage the raw layer is written to, as configured.
+fn storage(sink: &SinkConfig) -> Result<Arc<dyn Storage>> {
+    match sink.storage {
+        StorageKind::Local => Ok(Arc::new(LocalStorage)),
+        StorageKind::Gcs => gcs_storage(&sink.gcs_bucket),
+    }
+}
+
+#[cfg(feature = "gcs")]
+fn gcs_storage(bucket: &str) -> Result<Arc<dyn Storage>> {
+    anyhow::ensure!(!bucket.is_empty(), "sink.gcs_bucket is empty");
+    let storage = aq_sink_parquet::GcsStorage::gcs(bucket)
+        .with_context(|| format!("configuring Google Cloud Storage bucket {bucket}"))?;
+    Ok(Arc::new(storage))
+}
+
+#[cfg(not(feature = "gcs"))]
+fn gcs_storage(bucket: &str) -> Result<Arc<dyn Storage>> {
+    anyhow::bail!(
+        "sink.storage = \"gcs\" (bucket {bucket:?}) needs a binary built with `--features gcs`"
+    )
+}
+
 fn run_arpae(config: Config, window: DateWindow) -> Result<()> {
     let arpae = ArpaeSource::new(
         UreqTransport::new(&config.http),
@@ -97,15 +124,23 @@ fn run_arpae(config: Config, window: DateWindow) -> Result<()> {
     )
     .context("configuring ARPAE source")?;
 
-    let station_sink = StationSnapshotSink::new(config.sink.stations_dir, Utc::now().date_naive());
+    let storage = storage(&config.sink)?;
+    let station_sink = StationSnapshotSink::with_storage(
+        Arc::clone(&storage),
+        config.sink.stations_dir,
+        Utc::now().date_naive(),
+    );
     let stations = pipeline::ingest(&arpae.stations(), &station_sink, window, "station registry")?;
 
-    let type_sink =
-        StationTypeSnapshotSink::new(config.sink.station_types_dir, Utc::now().date_naive());
+    let type_sink = StationTypeSnapshotSink::with_storage(
+        Arc::clone(&storage),
+        config.sink.station_types_dir,
+        Utc::now().date_naive(),
+    );
     let station_types =
         pipeline::ingest(&arpae.station_types(), &type_sink, window, "station types")?;
 
-    let measurement_sink = MeasurementSink::new(config.sink.measurements_dir);
+    let measurement_sink = MeasurementSink::with_storage(storage, config.sink.measurements_dir);
     let measurements = pipeline::ingest(&arpae, &measurement_sink, window, "measurements")?;
 
     info!(
@@ -145,7 +180,7 @@ fn run_weather(config: Config, window: DateWindow) -> Result<()> {
         locations,
     )
     .context("configuring Open-Meteo source")?;
-    let sink = WeatherSink::new(config.sink.weather_dir);
+    let sink = WeatherSink::with_storage(storage(&config.sink)?, config.sink.weather_dir);
     let weather = pipeline::ingest(&source, &sink, window, "weather")?;
 
     info!(
@@ -165,7 +200,8 @@ fn run_weather(config: Config, window: DateWindow) -> Result<()> {
 fn run_archive(config: Config, from: Option<NaiveDate>, to: Option<NaiveDate>) -> Result<()> {
     let archive = ArpaeArchive::new(&config.arpae.archive_dir, config.arpae.utc_offset_hours)
         .context("configuring ARPAE archive")?;
-    let sink = MeasurementSink::new(config.sink.archive_measurements_dir);
+    let sink =
+        MeasurementSink::with_storage(storage(&config.sink)?, config.sink.archive_measurements_dir);
 
     // One year at a time keeps memory bounded whatever the size of the archive.
     let (mut fetched, mut inserted, mut updated, mut partitions) = (0, 0, 0, 0);
