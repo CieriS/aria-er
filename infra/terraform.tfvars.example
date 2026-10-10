@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars (ignored by git) and fill in.
+project_id = "my-gcp-project"
+
+# First apply: false. After the first ingestion has written files to the bucket: true.
+external_tables_enabled = false
+
+# Only to tear everything down.
+allow_destroy = false

@@ -36,3 +36,12 @@ updates:
     groups:
       images:
         patterns: ["*"]
+
+  - package-ecosystem: terraform
+    directory: /infra
+    target-branch: main
+    schedule:
+      interval: weekly
+    groups:
+      terraform:
+        patterns: ["*"]
