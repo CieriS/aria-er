@@ -35,8 +35,9 @@ class Settings:
             raw_dir=_path("AQ_RAW_DIR", root / "raw"),
             dbt_project_dir=_path("AQ_DBT_PROJECT_DIR", root / "transform"),
             duckdb_path=_path("AQ_DUCKDB_PATH", root / "warehouse/aria_er.duckdb"),
-            # First day held by the ARPAE near-real-time datastore when the project started.
-            partitions_start=os.environ.get("AQ_PARTITIONS_START", "2026-07-28"),
+            # The yearly archive files cover up to 2025; later days come from the REST
+            # measurement archive, one partition each.
+            partitions_start=os.environ.get("AQ_PARTITIONS_START", "2026-01-01"),
         )
 
     def reprocess_window_days(self) -> int:

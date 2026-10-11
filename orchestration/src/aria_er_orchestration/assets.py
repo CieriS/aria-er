@@ -51,7 +51,7 @@ def _ingest_window(context: AssetExecutionContext) -> tuple[date, date]:
     specs=[
         AssetSpec(
             RAW_MEASUREMENTS,
-            description="ARPAE near-real-time measurements as partitioned Parquet (raw layer).",
+            description="Recent ARPAE measurements as partitioned Parquet (raw layer).",
             group_name="ingestion",
             kinds={"rust", "parquet"},
         ),
@@ -69,8 +69,8 @@ def _ingest_window(context: AssetExecutionContext) -> tuple[date, date]:
         ),
     ],
     partitions_def=daily_partitions,
-    # A range of days is one `aq-ingest` call: the ARPAE API costs ~40 s per request
-    # whatever the window, so one run per day would be far slower.
+    # A range of days is one `aq-ingest` call: the registries are downloaded once and the
+    # measurements come in pages of several days each.
     backfill_policy=BackfillPolicy.single_run(),
     retry_policy=INGEST_RETRY_POLICY,
 )
