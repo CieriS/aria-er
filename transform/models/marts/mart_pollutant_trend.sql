@@ -43,4 +43,6 @@ select
 from covered as station_years
 inner join {{ ref('int_stations_current') }} as registry
     on station_years.station_id = registry.station_id
+-- Stations of the local networks have no municipality in the registries.
+where registry.municipality is not null
 group by registry.municipality, station_years.pollutant_id, station_years.pollutant_code, station_years.year

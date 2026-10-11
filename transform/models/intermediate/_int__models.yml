@@ -2,7 +2,10 @@ version: 2
 
 models:
   - name: int_stations_current
-    description: Current attributes of each station, from the open rows of the registry snapshot.
+    description: >
+      Current attributes of each station, from the open rows of the registry snapshot.
+      Stations missing from it (local networks) get name and province from the type
+      registry and no address or coordinates.
     columns:
       - name: station_id
         description: Canonical station code.
