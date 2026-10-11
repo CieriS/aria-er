@@ -1,19 +1,22 @@
-use std::collections::HashMap;
+use std::collections::BTreeSet;
 
 use aq_core::{DateWindow, Measurement, Source, SourceError, StationSensor, StationType};
 use aq_http::{get_with_retry, HttpConfig, Transport};
-use chrono::FixedOffset;
+use chrono::{FixedOffset, NaiveDate, NaiveTime, TimeZone};
 use tracing::{debug, info, warn};
 
-use crate::parse::{parse_nrt_page, parse_pollutants_csv, parse_station_types, parse_stations_csv};
+use crate::parse::{
+    parse_measurement_page, parse_station_types, parse_stations_csv, MeasurementMapping,
+};
 use crate::ArpaeConfig;
 
-/// ARPAE source backed by the CKAN datastore and the registry CSV exports.
+/// ARPAE source backed by the REST measurement archive and the station registries.
 pub struct ArpaeSource<T> {
     transport: T,
     config: ArpaeConfig,
     http: HttpConfig,
     offset: FixedOffset,
+    mapping: MeasurementMapping,
 }
 
 impl<T: Transport> ArpaeSource<T> {
@@ -27,19 +30,25 @@ impl<T: Transport> ArpaeSource<T> {
             .checked_mul(3600)
             .and_then(FixedOffset::east_opt)
             .ok_or_else(|| config_error(format!("utc_offset_hours {}", config.utc_offset_hours)))?;
-        // The id is interpolated into SQL: accept only the characters of a UUID.
-        let id = &config.measurements_resource_id;
-        if id.is_empty() || !id.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-') {
-            return Err(config_error(format!("measurements_resource_id {id:?}")));
-        }
         if config.page_size == 0 {
             return Err(config_error("page_size must be positive".to_owned()));
         }
+        if config.pollutant_ids.is_empty() || config.station_ids.is_empty() {
+            return Err(config_error(
+                "pollutant_ids and station_ids must list at least one id".to_owned(),
+            ));
+        }
+        let mapping = MeasurementMapping {
+            station_ids: config.station_ids.clone().into_iter().collect(),
+            pollutant_ids: config.pollutant_ids.clone().into_iter().collect(),
+            daily_pollutant_ids: config.daily_pollutant_ids.iter().copied().collect(),
+        };
         Ok(Self {
             transport,
             config,
             http,
             offset,
+            mapping,
         })
     }
 
@@ -62,59 +71,82 @@ impl<T: Transport> ArpaeSource<T> {
         get_with_retry(&self.transport, url, query, &self.http)
     }
 
-    fn fetch_units(&self) -> Result<HashMap<u32, String>, SourceError> {
-        let csv_text = self.get(&self.config.pollutants_csv_url, &[])?;
-        Ok(parse_pollutants_csv(&csv_text)?
-            .into_iter()
-            .map(|p| (p.id, p.unit))
-            .collect())
+    /// Midnight starting `day`, as the archive writes it.
+    fn midnight(&self, day: NaiveDate) -> Result<String, SourceError> {
+        self.offset
+            .from_local_datetime(&day.and_time(NaiveTime::MIN))
+            .single()
+            .map(|time| time.to_rfc3339())
+            .ok_or_else(|| SourceError::Format {
+                context: "ARPAE window".to_owned(),
+                message: format!("day {day}"),
+            })
     }
 
-    /// `reftime` is text formatted `MM/DD/YYYY HH:MM`: rebuild `YYYYMMDD` to
-    /// compare days. Rows are paged by `_id` (keyset pagination).
-    fn page_sql(&self, window: DateWindow, after_id: i64) -> String {
-        format!(
-            "SELECT _id, station_id, variable_id, reftime, value, v_flag \
-             FROM \"{resource}\" \
-             WHERE substr(reftime,7,4)||substr(reftime,1,2)||substr(reftime,4,2) \
-             BETWEEN '{from}' AND '{to}' AND _id > {after_id} \
-             ORDER BY _id LIMIT {limit}",
-            resource = self.config.measurements_resource_id,
-            from = window.from().format("%Y%m%d"),
-            to = window.to().format("%Y%m%d"),
-            limit = self.config.page_size,
-        )
+    /// Filter on the published reference times that can belong to `window`, for the
+    /// mapped parameters. A daily value is stamped at the end of its day, so the last
+    /// day of the window ends at the midnight after it.
+    fn measurement_filter(&self, window: DateWindow) -> Result<String, SourceError> {
+        let after = window.to().succ_opt().unwrap_or(window.to());
+        let parameters: Vec<&str> = self
+            .config
+            .pollutant_ids
+            .keys()
+            .map(String::as_str)
+            .collect();
+        let filter = serde_json::json!({
+            "reftime": {
+                "$gte": self.midnight(window.from())?,
+                "$lte": self.midnight(after)?,
+            },
+            "parameter_id": { "$in": parameters },
+        });
+        Ok(filter.to_string())
     }
 }
 
 impl<T: Transport> Source for ArpaeSource<T> {
     type Record = Measurement;
 
+    /// Measurements whose averaging period starts on a day of `window`.
     fn fetch(&self, window: DateWindow) -> Result<Vec<Measurement>, SourceError> {
-        let units = self.fetch_units()?;
-        let url = format!(
-            "{}/api/3/action/datastore_search_sql",
-            self.config.ckan_base_url.trim_end_matches('/')
-        );
+        let filter = self.measurement_filter(window)?;
+        let page_size = self.config.page_size.to_string();
 
         let mut measurements = Vec::new();
-        let mut after_id = 0;
-        // The server may cap a page below `page_size`, so only an empty page ends the scan.
-        loop {
-            let sql = self.page_sql(window, after_id);
-            let body = self.get(&url, &[("sql", &sql)])?;
-            let page = parse_nrt_page(&body, &units, self.offset)?;
-            let Some(last_id) = page.last_id else { break };
-            debug!(rows = page.measurements.len(), last_id, "fetched page");
-            measurements.extend(page.measurements);
-            after_id = last_id;
+        let mut unmapped_stations = BTreeSet::new();
+        let mut records = 0;
+        // The server may cap a page below `page_size`: the scan ends on the total it reports.
+        for page_number in 1u32.. {
+            let page_number = page_number.to_string();
+            let body = self.get(
+                &self.config.measurements_url,
+                &[
+                    ("where", &filter),
+                    ("sort", "_id"),
+                    ("max_results", &page_size),
+                    ("page", &page_number),
+                ],
+            )?;
+            let page = parse_measurement_page(&body, &self.mapping)?;
+            debug!(page = %page_number, records = page.records, total = page.total, "fetched page");
+            records += page.records;
+            unmapped_stations.extend(page.unmapped_stations);
+            measurements.extend(
+                page.rows
+                    .into_iter()
+                    .filter(|row| window.contains(row.period_start_day))
+                    .map(|row| row.measurement),
+            );
+            if page.records == 0 || records >= page.total {
+                break;
+            }
         }
 
-        let unknown = measurements.iter().filter(|m| m.unit.is_none()).count();
-        if unknown > 0 {
+        if !unmapped_stations.is_empty() {
             warn!(
-                rows = unknown,
-                "measurements of pollutants missing from the registry"
+                stations = ?unmapped_stations,
+                "measurements of stations missing from arpae.station_ids were left out"
             );
         }
         info!(

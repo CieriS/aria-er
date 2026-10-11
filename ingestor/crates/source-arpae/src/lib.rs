@@ -1,7 +1,7 @@
-//! ARPAE Emilia-Romagna source: near-real-time measurements from the CKAN
-//! datastore and the station/pollutant registries published as CSV.
+//! ARPAE Emilia-Romagna source: measurements from the archive of the ARPAE REST
+//! service, the station registries and the yearly files of validated history.
 //!
-//! Formats are documented in `docs/data-exploration.md`.
+//! Formats are documented in `docs/data.md` and `docs/data-exploration.md`.
 
 mod archive;
 mod config;

@@ -3,18 +3,113 @@
 # AQ_<SECTION>__<KEY>, e.g. AQ_RUN__REPROCESS_WINDOW_DAYS=45.
 
 [arpae]
-ckan_base_url = "https://dati.arpae.it"
-# "Dati osservati di qualità dell'aria" (near-real-time datastore resource).
-measurements_resource_id = "4dc855a1-6298-4b71-a1ae-d80693d43dcb"
+# Measurement archive of the ARPAE REST service: hourly and daily values from late 2021,
+# first published a few hours after measurement and revised as they are validated.
+measurements_url = "https://apps.arpae.it/REST/qa_archivio_dati_public"
 stations_csv_url = "https://docs.google.com/spreadsheets/d/1-4wgZ8JeLeg0bODTSFUrshPY-_y9mERUu0FJtSFr78s/export?format=csv"
-pollutants_csv_url = "https://docs.google.com/spreadsheets/d/1K6vRcShjje2CDnvnk39o3jkU4ihgpA7rfsdAV1S-yXU/export?format=csv"
 # Station registry carrying the type of each station (traffic, background, industrial).
 station_types_url = "https://apps.arpae.it/REST/qa_stazioni"
 # Validated yearly files downloaded from the ARPAE archive, read by `aq-ingest archive`.
 archive_dir = "data/samples/arpae"
 # Published timestamps do not follow daylight saving: assumed UTC+1 all year.
 utc_offset_hours = 1
-page_size = 32000
+# Larger pages are cut off by the server more often (5000 records are about 3.5 MB).
+page_size = 2000
+# Pollutants published as daily means (PM10, PM2.5), by id of the parameter registry.
+# The archive stamps them at the end of their day and hourly values at the start of
+# their hour; the ingestor stores the day itself and the end of the hour.
+daily_pollutant_ids = [5, 111]
+
+# The measurement archive has its own ids. Parameter id of the archive = id of the ARPAE
+# parameter registry, the one used in the raw layer and in the dbt seed `arpae_pollutants`.
+# Only the parameters listed here are requested (ethylbenzene, 41, and m,p-xylene, 45,
+# have no registry id).
+[arpae.pollutant_ids]
+29 = 1    # SO2
+30 = 9    # NOx
+31 = 38   # NO
+32 = 8    # NO2
+33 = 10   # CO
+34 = 7    # O3
+38 = 20   # Benzene
+39 = 21   # Toluene
+42 = 82   # o-xylene
+48 = 111  # PM2.5
+50 = 5    # PM10
+
+# Station id of the archive = station code of the registries. From `originalidstazione`
+# and `idstazione` of the daily bulletin (`bollettini_qa`) of 2026-10-09; the mobile
+# laboratories LM-BO and LM-RN, absent from the bulletin, by name. Records of a station
+# missing here are left out with a warning.
+[arpae.station_ids]
+1057 = 3000007  # San Lazzaro (RE)
+1058 = 2000003  # Cittadella (PR)
+1059 = 2000004  # Montebello (PR)
+1060 = 2000214  # Badia (PR)
+1061 = 2000219  # Saragat (PR)
+1062 = 2000224  # LM-PR (PR)
+1063 = 2000229  # Malcantone (PR)
+1064 = 2000230  # Bogolese (PR)
+1065 = 2000231  # LM-PR-PAIP (PR)
+1066 = 2000232  # Paradigna (PR)
+1068 = 3000001  # Castellarano (RE)
+1069 = 3000018  # Febbio (RE)
+1070 = 3000022  # S. Rocco (RE)
+1071 = 3000024  # LM-RE (RE)
+1072 = 3000025  # Timavo (RE)
+1073 = 4000002  # Giardini (MO)
+1074 = 4000012  # Remesina (MO)
+1075 = 4000022  # Parco Ferrari (MO)
+1076 = 4000023  # Albareto (MO)
+1077 = 4000024  # Tagliati (MO)
+1078 = 4000110  # San Francesco (MO)
+1079 = 4000152  # Gavello (MO)
+1080 = 4000153  # LM-MO (MO)
+1081 = 4000155  # Parco Edilcarani (MO)
+1082 = 4000158  # Belgio (MO)
+1083 = 5000007  # Lugagnano (PC)
+1084 = 5000020  # Ceno (PC)
+1085 = 5000024  # Gerbido (PC)
+1088 = 5000033  # Giordani-Farnese (PC)
+1089 = 5000062  # Besenzone (PC)
+1090 = 5000064  # LM-PC (PC)
+1091 = 5000065  # Parco Montecucco (PC)
+1094 = 6000010  # Parco Resistenza (FC)
+1095 = 6000011  # Roma (FC)
+1096 = 6000014  # Franchini-Angeloni (FC)
+1098 = 6000031  # Savignano (FC)
+1099 = 6000035  # Hera (FC)
+1100 = 6000036  # Savignano di Rigo (FC)
+1101 = 7000002  # De Amicis (BO)
+1102 = 7000014  # Giardini Margherita (BO)
+1103 = 7000015  # Porta San Felice (BO)
+1104 = 7000024  # San Lazzaro (BO)
+1105 = 7000027  # San Pietro Capofiume (BO)
+1106 = 7000038  # LM-BO (BO)
+1107 = 7000041  # Via Chiarini (BO)
+1108 = 7000042  # Castelluccio (BO)
+1112 = 8000002  # Isonzo (FE)
+1113 = 8000007  # Gherardi (FE)
+1114 = 8000038  # Cento (FE)
+1116 = 8000040  # Villa Fulvia (FE)
+1117 = 8000041  # Ostellato (FE)
+1118 = 8000044  # Cassana (FE)
+1119 = 8000045  # Barco Nuova (FE)
+1120 = 9000014  # Zalamella (RA)
+1121 = 9000015  # N. Rocca Brancaleone (RA)
+1122 = 9000021  # Caorle (RA)
+1123 = 9000022  # LM-RA (RA)
+1124 = 9000068  # Ballirana (RA)
+1125 = 9000070  # Delta Cervia (RA)
+1126 = 9000077  # Porto San Vitale (RA)
+1127 = 9000083  # Parco Bertozzi (RA)
+1128 = 10000001  # Flaminia (RN)
+1129 = 10000002  # Marecchia (RN)
+1130 = 10000059  # Verucchio (RN)
+1131 = 10000060  # San Clemente (RN)
+1132 = 10000071  # LM-RN (RN)
+1133 = 10000074  # San Leo (RN)
+1156 = 9000085  # LM-RA 2 (RA)
 
 [openmeteo]
 archive_url = "https://archive-api.open-meteo.com/v1/archive"
@@ -26,7 +121,7 @@ max_locations_per_request = 10
 
 [http]
 connect_timeout_secs = 10
-# The datastore SQL endpoint routinely takes 40 s or more to answer.
+# A page of the measurement archive takes a few seconds, at times much longer.
 timeout_secs = 180
 max_attempts = 5
 initial_backoff_ms = 1000

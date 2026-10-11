@@ -55,8 +55,8 @@ fn parse_time(raw: &str, context: &str) -> Result<NaiveDateTime, SourceError> {
 
 /// Parses one archive file. `context` names the file in error messages.
 ///
-/// The reference time follows the near-real-time feed: the end of the interval
-/// for hourly values, the day itself for daily ones.
+/// The reference time follows the convention of the raw layer: the end of the
+/// interval for hourly values, the day itself for daily ones.
 pub fn parse_archive_csv(
     csv_text: &str,
     offset: FixedOffset,

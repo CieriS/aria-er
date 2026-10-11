@@ -1,13 +1,10 @@
 //! Pure parsers for the ARPAE formats. No I/O happens here.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use aq_core::{Measurement, Pollutant, SourceError, Station, StationSensor, StationType};
-use chrono::{FixedOffset, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, NaiveDate, Utc};
 use serde::Deserialize;
-
-/// Timestamp format of the near-real-time datastore (month first).
-const NRT_REFTIME_FORMAT: &str = "%m/%d/%Y %H:%M";
 
 fn format_error(context: &str, message: impl Into<String>) -> SourceError {
     SourceError::Format {
@@ -16,99 +13,127 @@ fn format_error(context: &str, message: impl Into<String>) -> SourceError {
     }
 }
 
-#[derive(Deserialize)]
-struct CkanResponse {
-    success: bool,
-    result: Option<CkanResult>,
-}
-
-#[derive(Deserialize)]
-struct CkanResult {
-    records: Vec<NrtRecord>,
-}
-
-#[derive(Deserialize)]
-struct NrtRecord {
-    #[serde(rename = "_id")]
-    id: i64,
-    station_id: String,
-    variable_id: String,
-    reftime: String,
-    value: String,
-    v_flag: String,
-}
-
-/// One page of near-real-time measurements.
-#[derive(Debug)]
-pub struct NrtPage {
-    pub measurements: Vec<Measurement>,
-    /// Highest datastore `_id` in the page, used as the cursor for the next one.
-    pub last_id: Option<i64>,
-}
-
-/// Parses a `datastore_search_sql` response selecting
-/// `_id, station_id, variable_id, reftime, value, v_flag`.
+/// How the measurement archive maps onto the identifiers of the raw layer.
 ///
-/// `units` maps pollutant id to its published unit. `offset` is the fixed UTC
-/// offset of `reftime`.
-pub fn parse_nrt_page(
-    json: &str,
-    units: &HashMap<u32, String>,
-    offset: FixedOffset,
-) -> Result<NrtPage, SourceError> {
-    const CONTEXT: &str = "datastore response";
-    let response: CkanResponse =
-        serde_json::from_str(json).map_err(|e| format_error(CONTEXT, e.to_string()))?;
-    let result = match response.result {
-        Some(result) if response.success => result,
-        _ => return Err(format_error(CONTEXT, "CKAN reported success=false")),
-    };
+/// The archive has its own station and parameter ids, published as text.
+#[derive(Debug, Clone, Default)]
+pub struct MeasurementMapping {
+    /// Archive station id to canonical station code.
+    pub station_ids: HashMap<String, u32>,
+    /// Archive parameter id to pollutant id of the parameter registry.
+    pub pollutant_ids: HashMap<String, u32>,
+    /// Registry ids of the pollutants published as daily means.
+    pub daily_pollutant_ids: HashSet<u32>,
+}
 
-    let last_id = result.records.iter().map(|r| r.id).max();
-    let measurements = result
-        .records
-        .into_iter()
-        .map(|record| nrt_measurement(record, units, offset))
-        .collect::<Result<_, _>>()?;
-    Ok(NrtPage {
-        measurements,
-        last_id,
+#[derive(Deserialize)]
+struct PageMeta {
+    total: usize,
+}
+
+#[derive(Deserialize)]
+struct MeasurementResponse {
+    #[serde(rename = "_items")]
+    items: Vec<MeasurementRecord>,
+    #[serde(rename = "_meta")]
+    meta: PageMeta,
+}
+
+#[derive(Deserialize)]
+struct MeasurementRecord {
+    #[serde(rename = "_id")]
+    id: String,
+    station_id: String,
+    parameter_id: String,
+    /// RFC 3339 with the offset, e.g. `2026-09-16T00:00:00+01:00`.
+    reftime: String,
+    value: f64,
+    parameter_unit: String,
+    /// Validation stages passed so far, e.g. `Non validato`, `Giornaliera + Mensile`.
+    validity: String,
+}
+
+/// A measurement with the day its averaging period starts in, in the published offset.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MeasurementRow {
+    pub period_start_day: NaiveDate,
+    pub measurement: Measurement,
+}
+
+/// One page of the measurement archive.
+#[derive(Debug)]
+pub struct MeasurementPage {
+    pub rows: Vec<MeasurementRow>,
+    /// Records in the page, mapped or not.
+    pub records: usize,
+    /// Records matching the query across all its pages.
+    pub total: usize,
+    /// Archive station ids missing from the mapping; their records are left out.
+    pub unmapped_stations: BTreeSet<String>,
+}
+
+/// Parses a page of the measurement archive (`qa_archivio_dati_public`).
+///
+/// The archive stamps an hourly value at the start of its hour and a daily value at the
+/// end of its day. Both are moved to the convention of the raw layer: the end of the
+/// hour, the day itself.
+pub fn parse_measurement_page(
+    json: &str,
+    mapping: &MeasurementMapping,
+) -> Result<MeasurementPage, SourceError> {
+    const CONTEXT: &str = "measurement archive response";
+    let response: MeasurementResponse =
+        serde_json::from_str(json).map_err(|e| format_error(CONTEXT, e.to_string()))?;
+
+    let records = response.items.len();
+    let mut rows = Vec::with_capacity(records);
+    let mut unmapped_stations = BTreeSet::new();
+    for record in response.items {
+        match mapping.station_ids.get(&record.station_id) {
+            Some(&station_id) => rows.push(measurement_row(record, station_id, mapping)?),
+            None => {
+                unmapped_stations.insert(record.station_id);
+            }
+        }
+    }
+    Ok(MeasurementPage {
+        rows,
+        records,
+        total: response.meta.total,
+        unmapped_stations,
     })
 }
 
-fn nrt_measurement(
-    record: NrtRecord,
-    units: &HashMap<u32, String>,
-    offset: FixedOffset,
-) -> Result<Measurement, SourceError> {
-    let context = format!("datastore record _id={}", record.id);
-    let pollutant_id: u32 = record
-        .variable_id
-        .trim()
-        .parse()
-        .map_err(|_| format_error(&context, format!("variable_id {:?}", record.variable_id)))?;
-    let value: f64 = record
-        .value
-        .trim()
-        .parse()
-        .map_err(|_| format_error(&context, format!("value {:?}", record.value)))?;
-    let local = NaiveDateTime::parse_from_str(&record.reftime, NRT_REFTIME_FORMAT)
+fn measurement_row(
+    record: MeasurementRecord,
+    station_id: u32,
+    mapping: &MeasurementMapping,
+) -> Result<MeasurementRow, SourceError> {
+    let context = format!("measurement archive record {}", record.id);
+    let pollutant_id = *mapping
+        .pollutant_ids
+        .get(&record.parameter_id)
+        .ok_or_else(|| format_error(&context, format!("parameter_id {:?}", record.parameter_id)))?;
+    let published = DateTime::parse_from_rfc3339(&record.reftime)
         .map_err(|_| format_error(&context, format!("reftime {:?}", record.reftime)))?;
-    let measured_at = offset
-        .from_local_datetime(&local)
-        .single()
-        .ok_or_else(|| format_error(&context, format!("reftime {:?}", record.reftime)))?
-        .with_timezone(&Utc);
+    let (period_start, reference) = if mapping.daily_pollutant_ids.contains(&pollutant_id) {
+        let day = published - Duration::days(1);
+        (day, day)
+    } else {
+        (published, published + Duration::hours(1))
+    };
 
-    Ok(Measurement {
-        station_id: parse_station_code(&record.station_id)
-            .ok_or_else(|| format_error(&context, format!("station_id {:?}", record.station_id)))?,
-        pollutant_id,
-        measured_at,
-        value,
-        unit: units.get(&pollutant_id).cloned(),
-        validation_flag: Some(record.v_flag),
-        raw_reftime: record.reftime,
+    Ok(MeasurementRow {
+        period_start_day: period_start.date_naive(),
+        measurement: Measurement {
+            station_id,
+            pollutant_id,
+            measured_at: reference.with_timezone(&Utc),
+            value: record.value,
+            unit: Some(record.parameter_unit),
+            validation_flag: Some(record.validity),
+            raw_reftime: record.reftime,
+        },
     })
 }
 
@@ -119,32 +144,6 @@ pub fn parse_station_code(raw: &str) -> Option<u32> {
         return None;
     }
     digits.parse().ok()
-}
-
-#[derive(Deserialize)]
-struct PollutantRow {
-    #[serde(rename = "IdParametro")]
-    id: u32,
-    #[serde(rename = "PARAMETRO")]
-    name: String,
-    #[serde(rename = "UM")]
-    unit: String,
-}
-
-/// Parses the pollutant registry (`Anagrafe parametri`).
-pub fn parse_pollutants_csv(csv_text: &str) -> Result<Vec<Pollutant>, SourceError> {
-    let mut reader = csv::Reader::from_reader(csv_text.as_bytes());
-    reader
-        .deserialize::<PollutantRow>()
-        .map(|row| {
-            let row = row.map_err(|e| format_error("pollutant registry", e.to_string()))?;
-            Ok(Pollutant {
-                id: row.id,
-                name: row.name,
-                unit: row.unit,
-            })
-        })
-        .collect()
 }
 
 #[derive(Deserialize)]
@@ -209,12 +208,7 @@ struct TypeRegistryPage {
     #[serde(rename = "_items")]
     items: Vec<TypeRegistryStation>,
     #[serde(rename = "_meta")]
-    meta: TypeRegistryMeta,
-}
-
-#[derive(Deserialize)]
-struct TypeRegistryMeta {
-    total: usize,
+    meta: PageMeta,
 }
 
 #[derive(Deserialize)]
@@ -261,7 +255,7 @@ pub fn parse_station_types(json: &str) -> Result<Vec<StationType>, SourceError> 
             let station_id = parse_station_code(&station.id)
                 .ok_or_else(|| format_error(CONTEXT, format!("_id {:?}", station.id)))?;
             // `_updated` is an HTTP date; its day identifies the version of the record.
-            let updated = chrono::DateTime::parse_from_rfc2822(&station.updated)
+            let updated = DateTime::parse_from_rfc2822(&station.updated)
                 .map_err(|_| format_error(CONTEXT, format!("_updated {:?}", station.updated)))?;
             let label = [station.zona.trim(), station.tipo_stazione.trim()]
                 .into_iter()
