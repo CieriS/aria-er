@@ -1,6 +1,6 @@
 # 0008 — Measurements come from the REST archive, not from the CKAN datastore
 
-Status: proposed, supersedes 0002
+Status: accepted (2026-10-12), supersedes 0002
 
 ## Context
 
