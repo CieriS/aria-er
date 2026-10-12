@@ -51,7 +51,7 @@ What does not work, is approximate, or is still manual.
 - The schedule and UI backfills need the local daemon running; nothing runs when the machine is off.
 - A range of days is all-or-nothing: if the run fails, every partition in it is marked failed.
 - The registry snapshot is shown as daily-partitioned in Dagster although it is a dated extraction.
-- Partitions start on 2026-01-01: earlier years of the REST archive (it goes back to late 2021)
+- Partitions start on 2026-01-01: earlier years of the REST archive (complete from 2022)
   can be ingested with `make ingest FROM=... TO=...` but are not scheduled; the yearly files win
   over them for the same key anyway.
 - Weather is a ~10 km reanalysis, not a measurement at the station, and stations within the same
