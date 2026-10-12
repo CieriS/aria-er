@@ -9,7 +9,9 @@ sources:
     tables:
       - name: measurements
         identifier: arpae_measurements
-        description: One row per station, pollutant and reference time. Upserted by natural key.
+        description: >
+          One row per station, pollutant and reference time, from the REST measurement archive.
+          Upserted by natural key.
         config:
           external_location: "read_parquet('{{ var('raw_dir') }}/arpae/measurements/*/*/*.parquet')"
           loaded_at_field: measured_at

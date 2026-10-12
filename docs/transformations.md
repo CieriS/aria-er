@@ -10,7 +10,7 @@ least once.
 
 | Layer | Model | Content |
 |---|---|---|
-| staging | `stg_arpae__measurements` | Near-real-time rows: typed, UTC timestamp, value in µg/m³ |
+| staging | `stg_arpae__measurements` | Recent rows from the REST archive: typed, UTC timestamp, value in µg/m³ |
 | staging | `stg_arpae__measurements_archive` | Validated archive measurements, same shape as the near-real-time ones |
 | staging | `stg_arpae__stations` | Latest extraction of the station registry |
 | staging | `stg_arpae__station_types` | Station type snapshots from the ARPAE station registry, label normalised |
@@ -43,7 +43,9 @@ Rules applied:
   An hourly value stamped at the end of its hour belongs to the day the hour starts in.
 - **Minimum coverage 75%.** A daily mean needs 18 of 24 hours, an 8-hour mean 6 of 8 hours,
   a daily 8-hour maximum 18 of 24 windows. Below that the period is not counted.
-- **Exceedance** means strictly greater than the limit.
+- **Exceedance** means strictly greater than the limit, after rounding the value to a whole
+  number: 50.4 µg/m³ of PM10 is not an exceedance. The REST archive publishes unrounded
+  values while ARPAE counts on whole numbers; see the check against the bulletin below.
 - **Flag, don't drop.** Negative, zero and implausible values stay in the fact table with
   `is_negative`, `is_zero`, `is_implausible`; only `is_valid` rows enter the aggregates.
   Two tests with `warn` severity surface them without failing the build.
@@ -78,7 +80,28 @@ Notes on the comparison:
 - For ozone the law caps the *three-year average* of exceedance days at 25. The mart
   compares each single year with 25, so `is_over_allowed_exceedances` is an approximation
   for ozone until three full years are loaded.
-- 2026 rows cover August only (`year_coverage` ≈ 0.08): their counts are partial.
+- 2026 rows cover the year up to the last day ARPAE published: their counts are partial.
+
+### Check against the daily bulletin (2026)
+
+Every ARPAE daily bulletin (`bollettini_qa`) carries, for each station, the exceedances
+counted since 1 January. With 2026 ingested from the REST archive, `mart_exceedances_yearly`
+was compared with the bulletin of 2026-10-08, the last day both cover:
+
+| Indicator (1 January – 8 October 2026) | Stations compared | Identical |
+|---|---|---|
+| PM10 days above 50 µg/m³ | 64 | 64 |
+| NO2 hours above 200 µg/m³ | 65 | 65 (none anywhere) |
+| O3 days with 8-hour maximum above 120 µg/m³ | 43 | 29; the other 14 differ by 1 to 3 days |
+
+- The PM10 counts are identical only when the daily value is rounded to a whole number
+  before the comparison; on the unrounded values 24 stations count one or more days too
+  many. This is where the rounding rule above comes from.
+- The check also confirms the station id map and the day a daily value belongs to: a
+  one-day shift moves exceedances across months and stations stop matching.
+- The ozone differences are not explained. Rounding the hourly values first, or dropping
+  the coverage rule for the day, both match fewer stations. The 2025 counts for the two
+  Bologna stations still equal the annual report.
 
 ### Ten years of PM10 in Bologna
 

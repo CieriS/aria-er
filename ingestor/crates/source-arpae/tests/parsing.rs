@@ -1,43 +1,36 @@
 //! Parsing tests on reduced real samples taken from `data/samples/arpae/`.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use aq_core::{DateWindow, Source, SourceError};
 use aq_http::{HttpConfig, Transport, TransportError};
 use aq_source_arpae::parse::{
-    parse_nrt_page, parse_pollutants_csv, parse_station_code, parse_station_types,
-    parse_stations_csv,
+    parse_measurement_page, parse_station_code, parse_station_types, parse_stations_csv,
+    MeasurementMapping,
 };
 use aq_source_arpae::{ArpaeConfig, ArpaeSource};
-use chrono::{FixedOffset, NaiveDate, TimeZone, Utc};
+use chrono::{NaiveDate, TimeZone, Utc};
 
-const NRT_PAGE: &str = include_str!("fixtures/nrt_page.json");
-const POLLUTANTS: &str = include_str!("fixtures/pollutants.csv");
+/// Porta San Felice (archive id 1103) on 2026-09-16: NO2, CO, PM10 and PM2.5 with
+/// reference times from midnight to the midnight after, 54 records in two pages.
+const MEASUREMENTS_PAGE_1: &str = include_str!("fixtures/measurements_page_1.json");
+const MEASUREMENTS_PAGE_2: &str = include_str!("fixtures/measurements_page_2.json");
 const STATIONS: &str = include_str!("fixtures/stations.csv");
 const STATION_TYPES: &str = include_str!("fixtures/station_registry.json");
-const EMPTY_PAGE: &str = r#"{"success": true, "result": {"records": [], "fields": []}}"#;
 
-fn utc_plus_one() -> FixedOffset {
-    FixedOffset::east_opt(3600).unwrap()
+fn mapping() -> MeasurementMapping {
+    MeasurementMapping {
+        station_ids: [("1103".to_owned(), 7_000_015)].into(),
+        pollutant_ids: [("32", 8), ("33", 10), ("48", 111), ("50", 5)]
+            .map(|(archive, registry)| (archive.to_owned(), registry))
+            .into(),
+        daily_pollutant_ids: [5, 111].into(),
+    }
 }
 
-fn units() -> HashMap<u32, String> {
-    parse_pollutants_csv(POLLUTANTS)
-        .unwrap()
-        .into_iter()
-        .map(|p| (p.id, p.unit))
-        .collect()
-}
-
-#[test]
-fn pollutant_registry_keeps_published_units() {
-    let pollutants = parse_pollutants_csv(POLLUTANTS).unwrap();
-    assert_eq!(pollutants.len(), 21);
-    let co = pollutants.iter().find(|p| p.id == 10).unwrap();
-    assert_eq!(co.unit, "mg/m3");
-    let pm10 = pollutants.iter().find(|p| p.id == 5).unwrap();
-    assert_eq!((pm10.name.as_str(), pm10.unit.as_str()), ("PM10", "ug/m3"));
+fn day(month: u32, day: u32) -> NaiveDate {
+    NaiveDate::from_ymd_opt(2026, month, day).unwrap()
 }
 
 #[test]
@@ -64,87 +57,208 @@ fn station_code_accepts_the_three_published_forms() {
 }
 
 #[test]
-fn nrt_page_is_parsed_month_first_and_converted_to_utc() {
-    let page = parse_nrt_page(NRT_PAGE, &units(), utc_plus_one()).unwrap();
-    assert_eq!(page.measurements.len(), 99);
-    assert_eq!(page.last_id, Some(1098));
-
-    // "08/05/2026 00:00" is 5 August (not 8 May) at UTC+1.
-    let midnight = page
-        .measurements
+fn measurement_page_maps_ids_and_keeps_published_values() {
+    let page = parse_measurement_page(MEASUREMENTS_PAGE_1, &mapping()).unwrap();
+    assert_eq!((page.records, page.total), (40, 54));
+    assert_eq!(page.rows.len(), 40);
+    assert!(page.unmapped_stations.is_empty());
+    assert!(page
+        .rows
         .iter()
-        .find(|m| m.pollutant_id == 8 && m.raw_reftime == "08/05/2026 00:00")
+        .all(|row| row.measurement.station_id == 7_000_015));
+
+    let second = parse_measurement_page(MEASUREMENTS_PAGE_2, &mapping()).unwrap();
+    assert_eq!((second.records, second.total), (14, 54));
+
+    // CO keeps its own unit and the unrounded value; the validation stages are verbatim.
+    let co = second
+        .rows
+        .iter()
+        .map(|row| &row.measurement)
+        .find(|m| m.raw_reftime == "2026-09-16T15:00:00+01:00")
         .unwrap();
-    assert_eq!(midnight.station_id, 7_000_014);
-    assert_eq!(
-        midnight.measured_at,
-        Utc.with_ymd_and_hms(2026, 8, 4, 23, 0, 0).unwrap()
-    );
-    assert_eq!(midnight.unit.as_deref(), Some("ug/m3"));
-
-    // Provisional and validated rows keep their flag.
-    assert!(page
-        .measurements
-        .iter()
-        .any(|m| m.validation_flag.as_deref() == Some("M")));
-    assert!(page
-        .measurements
-        .iter()
-        .any(|m| m.validation_flag.as_deref() == Some("G")));
+    assert_eq!(co.pollutant_id, 10);
+    assert_eq!(co.value, 0.45);
+    assert_eq!(co.unit.as_deref(), Some("mg/m³"));
+    assert_eq!(co.validation_flag.as_deref(), Some("Giornaliera + Mensile"));
 }
 
 #[test]
-fn nrt_page_without_unit_registry_leaves_unit_empty() {
-    let page = parse_nrt_page(NRT_PAGE, &HashMap::new(), utc_plus_one()).unwrap();
-    assert!(page.measurements.iter().all(|m| m.unit.is_none()));
+fn hourly_values_move_to_the_end_of_their_hour() {
+    let page = parse_measurement_page(MEASUREMENTS_PAGE_1, &mapping()).unwrap();
+    let first_hour = page
+        .rows
+        .iter()
+        .find(|row| {
+            row.measurement.pollutant_id == 8
+                && row.measurement.raw_reftime == "2026-09-16T00:00:00+01:00"
+        })
+        .unwrap();
+
+    // Published at the start of the hour, 00:00 UTC+1: the hour ends at 00:00 UTC.
+    assert_eq!(first_hour.period_start_day, day(9, 16));
+    assert_eq!(
+        first_hour.measurement.measured_at,
+        Utc.with_ymd_and_hms(2026, 9, 16, 0, 0, 0).unwrap()
+    );
+    assert_eq!(first_hour.measurement.value, 13.53);
+}
+
+#[test]
+fn daily_values_move_from_the_end_of_their_day_to_the_day_itself() {
+    let pages = [MEASUREMENTS_PAGE_1, MEASUREMENTS_PAGE_2]
+        .map(|json| parse_measurement_page(json, &mapping()).unwrap());
+    let pm10: Vec<_> = pages
+        .iter()
+        .flat_map(|page| &page.rows)
+        .filter(|row| row.measurement.pollutant_id == 5)
+        .collect();
+    assert_eq!(pm10.len(), 2);
+
+    // The value stamped at the midnight ending 15 September is the PM10 of that day
+    // (the bulletin of 2026-09-15 reports 12 for this station).
+    let stamped_16 = pm10
+        .iter()
+        .find(|row| row.measurement.raw_reftime == "2026-09-16T00:00:00+01:00")
+        .unwrap();
+    assert_eq!(stamped_16.period_start_day, day(9, 15));
+    assert_eq!(stamped_16.measurement.value, 11.8);
+    assert_eq!(
+        stamped_16.measurement.measured_at,
+        Utc.with_ymd_and_hms(2026, 9, 14, 23, 0, 0).unwrap()
+    );
+
+    let stamped_17 = pm10
+        .iter()
+        .find(|row| row.measurement.raw_reftime == "2026-09-17T00:00:00+01:00")
+        .unwrap();
+    assert_eq!(stamped_17.period_start_day, day(9, 16));
+    assert_eq!(stamped_17.measurement.value, 11.2);
+}
+
+/// One archive record; `{}` placeholders are station id, parameter id, reference time and value.
+fn page_with(station: &str, parameter: &str, reftime: &str, value: &str) -> String {
+    format!(
+        r#"{{"_items": [{{"_id": "x", "station_id": "{station}", "parameter_id": "{parameter}",
+            "reftime": "{reftime}", "value": {value}, "parameter_unit": "µg/m³",
+            "validity": "Non validato"}}], "_meta": {{"page": 1, "max_results": 1, "total": 1}}}}"#
+    )
+}
+
+#[test]
+fn records_of_an_unmapped_station_are_left_out_and_reported() {
+    let json = page_with("2024", "32", "2026-09-16T00:00:00+01:00", "5.0");
+    let page = parse_measurement_page(&json, &mapping()).unwrap();
+    assert!(page.rows.is_empty());
+    assert_eq!(page.records, 1);
+    assert_eq!(
+        page.unmapped_stations.into_iter().collect::<Vec<_>>(),
+        ["2024"]
+    );
+}
+
+#[test]
+fn the_published_offset_decides_the_instant_and_the_day() {
+    // The same instant written in UTC: the hour still ends at 00:00 UTC, and the day is
+    // the one of the published offset.
+    let json = page_with("1103", "32", "2026-09-15T23:00:00+00:00", "5.0");
+    let page = parse_measurement_page(&json, &mapping()).unwrap();
+    assert_eq!(page.rows[0].period_start_day, day(9, 15));
+    assert_eq!(
+        page.rows[0].measurement.measured_at,
+        Utc.with_ymd_and_hms(2026, 9, 16, 0, 0, 0).unwrap()
+    );
 }
 
 #[test]
 fn malformed_records_fail_loudly() {
-    let day_first = r#"{"success": true, "result": {"records": [
-        {"_id": 1, "station_id": "7000014", "variable_id": "8",
-         "reftime": "31/07/2026 00:00", "value": "5", "v_flag": "M"}]}}"#;
-    let error = parse_nrt_page(day_first, &units(), utc_plus_one()).unwrap_err();
+    let valid = page_with("1103", "32", "2026-09-16T00:00:00+01:00", "5.0");
+    assert_eq!(
+        parse_measurement_page(&valid, &mapping())
+            .unwrap()
+            .rows
+            .len(),
+        1
+    );
+
+    // A reference time without offset, as the old datastore wrote it.
+    let error = parse_measurement_page(
+        &page_with("1103", "32", "09/16/2026 00:00", "5.0"),
+        &mapping(),
+    )
+    .unwrap_err();
     assert!(error.to_string().contains("reftime"), "{error}");
 
-    let bad_value = day_first
-        .replace("31/07/2026", "07/31/2026")
-        .replace("\"5\"", "\"n.d.\"");
-    let error = parse_nrt_page(&bad_value, &units(), utc_plus_one()).unwrap_err();
-    assert!(error.to_string().contains("value"), "{error}");
+    // A parameter that was not requested.
+    let error = parse_measurement_page(
+        &page_with("1103", "41", "2026-09-16T00:00:00+01:00", "5.0"),
+        &mapping(),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("parameter_id"), "{error}");
 
-    let failed = r#"{"success": false, "error": {"message": "boom"}}"#;
-    assert!(matches!(
-        parse_nrt_page(failed, &units(), utc_plus_one()),
-        Err(SourceError::Format { .. })
-    ));
+    // A value that is not a number, a missing field, a response that is not a page.
+    for json in [
+        page_with("1103", "32", "2026-09-16T00:00:00+01:00", "null"),
+        page_with("1103", "32", "2026-09-16T00:00:00+01:00", "\"n.d.\""),
+        valid.replace(r#""validity": "Non validato""#, r#""other": 1"#),
+        r#"{"_error": {"code": 500, "message": "boom"}}"#.to_owned(),
+    ] {
+        assert!(
+            matches!(
+                parse_measurement_page(&json, &mapping()),
+                Err(SourceError::Format { .. })
+            ),
+            "{json}"
+        );
+    }
 }
 
-/// Serves the fixtures and records the SQL of each datastore query.
+/// Serves the fixtures and records the query of each request to the REST service.
 struct FixtureTransport {
-    queries: RefCell<Vec<String>>,
+    queries: RefCell<Vec<Vec<(String, String)>>>,
     fail_first: RefCell<bool>,
+}
+
+impl FixtureTransport {
+    fn new(fail_first: bool) -> Self {
+        Self {
+            queries: RefCell::new(Vec::new()),
+            fail_first: RefCell::new(fail_first),
+        }
+    }
+
+    fn record(&self, query: &[(&str, &str)]) {
+        let query = query
+            .iter()
+            .map(|(name, value)| ((*name).to_owned(), (*value).to_owned()))
+            .collect();
+        self.queries.borrow_mut().push(query);
+    }
 }
 
 impl Transport for FixtureTransport {
     fn get(&self, url: &str, query: &[(&str, &str)]) -> Result<String, TransportError> {
         match url {
-            "http://sheets.test/pollutants" => Ok(POLLUTANTS.to_owned()),
             "http://sheets.test/stations" => Ok(STATIONS.to_owned()),
-            "http://ckan.test/api/3/action/datastore_search_sql" => {
+            "http://apps.test/qa_archivio_dati_public" => {
                 if self.fail_first.replace(false) {
                     return Err(TransportError {
                         message: "HTTP status 502".to_owned(),
                         retryable: true,
                     });
                 }
-                let sql = query[0].1.to_owned();
-                let first_page = sql.contains("_id > 0 ");
-                self.queries.borrow_mut().push(sql);
-                Ok(if first_page { NRT_PAGE } else { EMPTY_PAGE }.to_owned())
+                self.record(query);
+                let page = query.iter().find(|(name, _)| *name == "page").unwrap().1;
+                Ok(match page {
+                    "1" => MEASUREMENTS_PAGE_1,
+                    "2" => MEASUREMENTS_PAGE_2,
+                    other => panic!("unexpected page {other}"),
+                }
+                .to_owned())
             }
             "http://apps.test/qa_stazioni" => {
-                self.queries.borrow_mut().push(format!("{query:?}"));
+                self.record(query);
                 Ok(STATION_TYPES.to_owned())
             }
             other => panic!("unexpected url {other}"),
@@ -152,40 +266,58 @@ impl Transport for FixtureTransport {
     }
 }
 
-fn source(transport: FixtureTransport) -> ArpaeSource<FixtureTransport> {
-    let config = ArpaeConfig {
-        ckan_base_url: "http://ckan.test/".to_owned(),
-        measurements_resource_id: "4dc855a1-6298-4b71-a1ae-d80693d43dcb".to_owned(),
+fn config() -> ArpaeConfig {
+    let ids = |pairs: &[(&str, u32)]| -> BTreeMap<String, u32> {
+        pairs
+            .iter()
+            .map(|(archive, registry)| ((*archive).to_owned(), *registry))
+            .collect()
+    };
+    ArpaeConfig {
+        measurements_url: "http://apps.test/qa_archivio_dati_public".to_owned(),
         stations_csv_url: "http://sheets.test/stations".to_owned(),
-        pollutants_csv_url: "http://sheets.test/pollutants".to_owned(),
         station_types_url: "http://apps.test/qa_stazioni".to_owned(),
         archive_dir: String::new(),
         utc_offset_hours: 1,
-        page_size: 100,
-    };
-    let http = HttpConfig {
+        page_size: 40,
+        daily_pollutant_ids: vec![5, 111],
+        pollutant_ids: ids(&[("32", 8), ("33", 10), ("48", 111), ("50", 5)]),
+        station_ids: ids(&[("1103", 7_000_015)]),
+    }
+}
+
+fn http() -> HttpConfig {
+    HttpConfig {
         connect_timeout_secs: 1,
         timeout_secs: 1,
         max_attempts: 2,
         initial_backoff_ms: 0,
-    };
-    ArpaeSource::new(transport, config, http).unwrap()
+    }
+}
+
+fn source(transport: FixtureTransport) -> ArpaeSource<FixtureTransport> {
+    ArpaeSource::new(transport, config(), http()).unwrap()
 }
 
 #[test]
-fn source_pages_by_id_until_an_empty_page_and_retries() {
-    let source = source(FixtureTransport {
-        queries: RefCell::new(Vec::new()),
-        fail_first: RefCell::new(true),
-    });
-    let window = DateWindow::new(
-        NaiveDate::from_ymd_opt(2026, 7, 31).unwrap(),
-        NaiveDate::from_ymd_opt(2026, 8, 5).unwrap(),
-    )
-    .unwrap();
+fn source_pages_until_the_reported_total_and_retries() {
+    let source = source(FixtureTransport::new(true));
+    let window = DateWindow::new(day(9, 16), day(9, 16)).unwrap();
 
     let measurements = source.fetch(window).unwrap();
-    assert_eq!(measurements.len(), 99);
+
+    // Two pages, 54 records. Four belong to other days: the PM10 and PM2.5 stamped at
+    // the midnight starting the day (15 September), the NO2 and CO of the hour starting
+    // at the midnight after it (17 September).
+    assert_eq!(source.transport().queries.borrow().len(), 2);
+    assert_eq!(measurements.len(), 50);
+    let count = |pollutant_id: u32| {
+        measurements
+            .iter()
+            .filter(|m| m.pollutant_id == pollutant_id)
+            .count()
+    };
+    assert_eq!((count(8), count(10), count(5), count(111)), (24, 24, 1, 1));
     assert!(measurements.iter().all(|m| m.unit.is_some()));
 
     let stations = source.stations().fetch(window).unwrap();
@@ -193,49 +325,59 @@ fn source_pages_by_id_until_an_empty_page_and_retries() {
 }
 
 #[test]
-fn source_queries_the_window_and_advances_the_cursor() {
-    let transport = FixtureTransport {
-        queries: RefCell::new(Vec::new()),
-        fail_first: RefCell::new(false),
-    };
-    let window = DateWindow::new(
-        NaiveDate::from_ymd_opt(2026, 7, 31).unwrap(),
-        NaiveDate::from_ymd_opt(2026, 8, 5).unwrap(),
-    )
-    .unwrap();
-    let source = source(transport);
+fn source_queries_the_window_for_the_mapped_parameters() {
+    let source = source(FixtureTransport::new(false));
+    let window = DateWindow::new(day(9, 10), day(9, 16)).unwrap();
     source.fetch(window).unwrap();
 
     let queries = source.transport().queries.borrow();
-    assert_eq!(queries.len(), 2);
-    assert!(queries[0].contains("BETWEEN '20260731' AND '20260805'"));
-    assert!(queries[0].contains("LIMIT 100"));
-    assert!(queries[1].contains("_id > 1098 "));
+    let param = |query: &[(String, String)], name: &str| {
+        query
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.clone())
+            .unwrap()
+    };
+    let filter: serde_json::Value = serde_json::from_str(&param(&queries[0], "where")).unwrap();
+    // From the midnight starting the first day to the one ending the last day.
+    assert_eq!(filter["reftime"]["$gte"], "2026-09-10T00:00:00+01:00");
+    assert_eq!(filter["reftime"]["$lte"], "2026-09-17T00:00:00+01:00");
+    assert_eq!(
+        filter["parameter_id"]["$in"],
+        serde_json::json!(["32", "33", "48", "50"])
+    );
+    assert_eq!(param(&queries[0], "sort"), "_id");
+    assert_eq!(param(&queries[0], "max_results"), "40");
+    assert_eq!(
+        (param(&queries[0], "page"), param(&queries[1], "page")),
+        ("1".to_owned(), "2".to_owned())
+    );
+    assert_eq!(param(&queries[0], "where"), param(&queries[1], "where"));
 }
 
 #[test]
-fn source_rejects_a_resource_id_that_is_not_a_uuid() {
-    let config = ArpaeConfig {
-        ckan_base_url: "http://ckan.test".to_owned(),
-        measurements_resource_id: "x\" OR 1=1 --".to_owned(),
-        stations_csv_url: String::new(),
-        pollutants_csv_url: String::new(),
-        station_types_url: String::new(),
-        archive_dir: String::new(),
-        utc_offset_hours: 1,
-        page_size: 100,
-    };
-    let http = HttpConfig {
-        connect_timeout_secs: 1,
-        timeout_secs: 1,
-        max_attempts: 1,
-        initial_backoff_ms: 0,
-    };
-    let transport = FixtureTransport {
-        queries: RefCell::new(Vec::new()),
-        fail_first: RefCell::new(false),
-    };
-    assert!(ArpaeSource::new(transport, config, http).is_err());
+fn source_rejects_a_configuration_it_cannot_query_with() {
+    let invalid = [
+        ArpaeConfig {
+            page_size: 0,
+            ..config()
+        },
+        ArpaeConfig {
+            utc_offset_hours: 99,
+            ..config()
+        },
+        ArpaeConfig {
+            pollutant_ids: BTreeMap::new(),
+            ..config()
+        },
+        ArpaeConfig {
+            station_ids: BTreeMap::new(),
+            ..config()
+        },
+    ];
+    for config in invalid {
+        assert!(ArpaeSource::new(FixtureTransport::new(false), config, http()).is_err());
+    }
 }
 
 #[test]
@@ -293,24 +435,21 @@ fn incomplete_or_malformed_registry_fails_loudly() {
 
 #[test]
 fn source_asks_the_registry_for_every_station_without_photos() {
-    let source = source(FixtureTransport {
-        queries: RefCell::new(Vec::new()),
-        fail_first: RefCell::new(false),
-    });
-    let day = NaiveDate::from_ymd_opt(2026, 10, 10).unwrap();
+    let source = source(FixtureTransport::new(false));
 
     let types = source
         .station_types()
-        .fetch(DateWindow::new(day, day).unwrap())
+        .fetch(DateWindow::new(day(10, 10), day(10, 10)).unwrap())
         .unwrap();
 
     assert_eq!(types.len(), 6);
     let queries = source.transport().queries.borrow();
     assert_eq!(queries.len(), 1);
+    let has = |name: &str, value: &str| queries[0].contains(&(name.to_owned(), value.to_owned()));
+    assert!(has("max_results", "500"), "{:?}", queries[0]);
     assert!(
-        queries[0].contains(r#""max_results", "500""#),
-        "{}",
+        has("projection", r#"{"foto":0,"dati":0}"#),
+        "{:?}",
         queries[0]
     );
-    assert!(queries[0].contains("foto"), "{}", queries[0]);
 }

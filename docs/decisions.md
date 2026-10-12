@@ -7,12 +7,13 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 | ADR | Decision | Status |
 |---|---|---|
 | [0001](adr/0001-parquet-upsert-by-partition-rewrite.md) | Upsert on Parquet by rewriting whole partitions | accepted |
-| [0002](adr/0002-near-real-time-datastore-as-phase-1-source.md) | Near-real-time datastore as the measurement source, UTC+1 timestamps | accepted |
+| [0002](adr/0002-near-real-time-datastore-as-phase-1-source.md) | Near-real-time datastore as the measurement source, UTC+1 timestamps | superseded by 0008 |
 | [0003](adr/0003-historical-archive-read-by-dbt.md) | Archive read by dbt from CSV | superseded by 0005 |
 | [0004](adr/0004-generic-source-and-sink-traits.md) | `Source` and `Sink` generic over the record type | accepted |
 | [0005](adr/0005-archive-loaded-by-the-ingestor.md) | Archive loaded by the ingestor into its own raw dataset | accepted |
 | [0006](adr/0006-gcs-and-bigquery-as-a-second-target.md) | Cloud Storage and BigQuery as a second target of the same pipeline | accepted, not yet run on GCP |
 | [0007](adr/0007-no-streaming.md) | Streaming is not justified for these data | proposed |
+| [0008](adr/0008-rest-archive-as-the-measurement-source.md) | Measurements from the REST archive, ids and reference times translated by the adapter | proposed |
 
 ## Phase 1 — Rust ingestor
 
@@ -23,7 +24,10 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 - **Near-real-time datastore as the only source for now**
   ([ADR 0002](adr/0002-near-real-time-datastore-as-phase-1-source.md)). One SQL query
   per window with keyset pagination; timestamps treated as fixed UTC+1 and converted to
-  UTC; the original string is kept so the conversion can be redone.
+  UTC; the original string is kept so the conversion can be redone. Replaced in October
+  2026 by the REST archive, behind the same trait
+  ([ADR 0008](adr/0008-rest-archive-as-the-measurement-source.md)): the datastore had
+  stopped, and the new source needed its ids and reference times translated.
 - **Sources and sinks behind traits** (`Source`, `Sink` in `aq-core`). The HTTP layer is
   a further small trait, so retry, pagination and parsing are tested without network.
 - **Blocking HTTP (`ureq`) instead of an async stack.** The ingestor makes a handful of
@@ -52,9 +56,9 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 
 ## Phase 3 — Dagster orchestration
 
-- **One run per range, not one per day** (`BackfillPolicy.single_run`). An ARPAE query takes
-  ~40 s whatever the window: a month as 31 runs would take over half an hour of waiting
-  against a few minutes, for the same result.
+- **One run per range, not one per day** (`BackfillPolicy.single_run`). Every run downloads
+  the registries again and the measurements come in pages of almost a day each: a month as
+  31 runs would repeat the fixed cost 31 times for the same result.
 - **dbt assets share the daily partitions.** The models are not physically partitioned;
   the partition range only tells dbt how far back to reprocess (`reprocess_from` variable),
   so a backfill older than the 30-day lookback still reaches the incremental model.

@@ -2,7 +2,10 @@ version: 2
 
 models:
   - name: int_stations_current
-    description: Current attributes of each station, from the open rows of the registry snapshot.
+    description: >
+      Current attributes of each station, from the open rows of the registry snapshot.
+      Stations missing from it (local networks) get name and province from the type
+      registry and no address or coordinates.
     columns:
       - name: station_id
         description: Canonical station code.
@@ -62,7 +65,7 @@ models:
       - name: unit_original
         description: Unit as published.
       - name: validation_flag
-        description: Near-real-time validation flag (T temporary, G daily, M monthly, S six-monthly); null for archive rows.
+        description: Validation stages of a near-real-time value, as published; null for archive rows.
       - name: source_name
         description: Origin of the row.
         data_tests:

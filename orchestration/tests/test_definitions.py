@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from dagster import AssetKey, Definitions, RunRequest, build_schedule_context
@@ -118,13 +118,17 @@ def test_schedule_requests_the_whole_provisional_window_in_one_run() -> None:
 
 
 def test_schedule_never_starts_before_the_first_partition() -> None:
-    scheduled = datetime(2026, 8, 5, 6, 0, tzinfo=ZoneInfo("Europe/Rome"))
+    # A few days after the first partition: the reprocessing window reaches before it.
+    first_partition = daily_partitions.get_first_partition_key()
+    scheduled = datetime.fromisoformat(f"{first_partition}T06:00").replace(
+        tzinfo=ZoneInfo("Europe/Rome")
+    ) + timedelta(days=5)
     request = reprocess_provisional_window(
         build_schedule_context(scheduled_execution_time=scheduled)
     )
 
     assert isinstance(request, RunRequest)
-    assert request.tags[PARTITION_RANGE_START_TAG] == daily_partitions.get_first_partition_key()
+    assert request.tags[PARTITION_RANGE_START_TAG] == first_partition
 
 
 def test_schedule_is_on_by_default_and_targets_the_refresh_job() -> None:

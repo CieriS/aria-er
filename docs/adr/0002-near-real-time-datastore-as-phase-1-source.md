@@ -1,6 +1,6 @@
 # 0002 — Near-real-time datastore as the only measurement source in phase 1
 
-Status: accepted (phase 1)
+Status: superseded by [0008](0008-rest-archive-as-the-measurement-source.md)
 
 ## Context
 
@@ -44,3 +44,9 @@ Phase 1 ingests only the datastore resource, through `datastore_search_sql`.
 The UTC+1 assumption is confirmed: ARPAE's REST archive publishes timestamps with an explicit
 `+01:00` offset all year. The datastore itself has not been updated since 2026-09-17; see
 `docs/data.md`.
+
+## Update, 2026-10-11
+
+Superseded: measurements now come from the REST archive. The statement above that a daily
+value is dated "the day itself" was wrong for the datastore, which dated it at the end of the
+day; see ADR 0008.

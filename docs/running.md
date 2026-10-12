@@ -18,8 +18,8 @@ make lint                                     # cargo fmt + clippy, ruff + mypy 
 ```
 
 `make ingest` runs `aq-ingest run`, `aq-ingest weather` and `aq-ingest archive`, all taking
-`[--from YYYY-MM-DD] [--to YYYY-MM-DD]`. The first downloads the station registry and the
-measurements of the window, the second the hourly weather at the station coordinates, the
+`[--from YYYY-MM-DD] [--to YYYY-MM-DD]`. The first downloads the station registry, the station types
+and the measurements of the window from the ARPAE REST archive, the second the hourly weather at the station coordinates, the
 third loads the validated archive files found in `data/samples/arpae/`:
 
 ```
@@ -30,8 +30,17 @@ raw/arpae/station_types/extracted_on=YYYY-MM-DD/station_types.parquet
 raw/openmeteo/weather/year=YYYY/month=MM/part-0.parquet
 ```
 
-A full month for the whole region is ~113k rows and takes about 4 minutes, almost all of
-it waiting for the ARPAE API (~40 s per request).
+A full month for the whole region is about 175k rows in 90 pages and takes 4 to 6 minutes. A page usually takes a
+few seconds, at times a minute, and connections drop now and then (the retries cover it).
+
+Measurements ingested before 2026-10-11 came from the CKAN datastore and have PM10 and
+PM2.5 one day late ([data.md](data.md)). To replace them, remove `raw/arpae/measurements/`,
+ingest the period again and rebuild the incremental model:
+
+```bash
+make ingest FROM=2026-01-01
+cd transform && uv run dbt build --profiles-dir . --full-refresh
+```
 
 Configuration lives in [ingestor/config/default.toml](../ingestor/config/default.toml)
 (endpoints, timeouts, retries, output paths, reprocessing window, log format). Any value
@@ -44,10 +53,10 @@ can be overridden with an environment variable `AQ_<SECTION>__<KEY>`, for exampl
 |---|---|---|
 | `station_id` | uint32 | Canonical station code (`7000014`) |
 | `pollutant_id` | uint32 | ARPAE parameter id (5 = PM10, 8 = NO2, …) |
-| `measured_at` | timestamp (µs, UTC) | Published reference time converted to UTC |
+| `measured_at` | timestamp (µs, UTC) | End of the hour for hourly values, start of the day for daily ones |
 | `value` | float64 | As published, not converted |
-| `unit` | string, nullable | Unit of `value` from the pollutant registry |
-| `validation_flag` | string | Source flag, verbatim (`M` / `G`) |
+| `unit` | string, nullable | Unit of `value` as published (`µg/m³`, `mg/m³`; `ug/m3`, `mg/m3` in the yearly files) |
+| `validation_flag` | string, nullable | Validation stages as published (`Giornaliera + Mensile`); empty for the yearly files |
 | `raw_reftime` | string | Reference time exactly as published |
 
 Natural key: `(station_id, pollutant_id, measured_at)`. Rows are sorted by key.

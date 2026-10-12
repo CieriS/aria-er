@@ -66,7 +66,8 @@ yearly as (
         periods.pollutant_id,
         periods.metric,
         extract(year from periods.measurement_date) as year,
-        count(case when periods.value_ugm3 > limits.limit_ugm3 then 1 end) as exceedances,
+        -- ARPAE compares whole numbers with the limit: 50.4 µg/m³ is not above 50.
+        count(case when round(periods.value_ugm3) > limits.limit_ugm3 then 1 end) as exceedances,
         count(*) as valid_periods,
         max(periods.value_ugm3) as max_value_ugm3,
         any_value(periods.periods_per_day) as periods_per_day

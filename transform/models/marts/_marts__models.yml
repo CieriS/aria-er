@@ -30,7 +30,7 @@ models:
         description: Calendar year in ARPAE local standard time.
         data_tests: [not_null]
       - name: exceedances
-        description: Valid periods (days or hours) with a value strictly above the limit.
+        description: Valid periods (days or hours) whose value, rounded to a whole number, is strictly above the limit.
         data_tests: [not_null]
       - name: limit_ugm3
         description: Threshold applied, in µg/m³.
@@ -199,3 +199,30 @@ models:
         data_tests: [not_null]
       - name: traffic_to_background_ratio
         description: Traffic mean over background mean.
+
+unit_tests:
+  - name: exceedances_compare_the_rounded_value_with_the_limit
+    model: mart_exceedances_yearly
+    description: >
+      A period exceeds when its value, rounded to a whole number, is strictly greater than
+      the limit, as in the ARPAE bulletins. Periods of invalid days are not counted.
+    given:
+      - input: ref('air_quality_limits')
+        rows:
+          - {pollutant_id: 5, pollutant_code: PM10, metric: daily_mean, limit_ugm3: 50, max_exceedances_per_year: 35}
+      - input: ref('int_measurements_daily')
+        rows:
+          - {station_id: 1, pollutant_id: 5, measurement_date: 2026-01-01, daily_mean_ugm3: 50.0, is_valid_day: true}
+          - {station_id: 1, pollutant_id: 5, measurement_date: 2026-01-02, daily_mean_ugm3: 50.4, is_valid_day: true}
+          - {station_id: 1, pollutant_id: 5, measurement_date: 2026-01-03, daily_mean_ugm3: 50.6, is_valid_day: true}
+          - {station_id: 1, pollutant_id: 5, measurement_date: 2026-01-04, daily_mean_ugm3: 62.7, is_valid_day: true}
+          - {station_id: 1, pollutant_id: 5, measurement_date: 2026-01-05, daily_mean_ugm3: 90.0, is_valid_day: false}
+      - input: ref('int_measurements_deduplicated')
+        rows: []
+      - input: ref('int_o3_8h_rolling')
+        rows: []
+      - input: ref('int_stations_current')
+        rows: []
+    expect:
+      rows:
+        - {station_id: 1, pollutant_id: 5, metric: daily_mean, year: 2026, exceedances: 2, valid_periods: 4, max_value_ugm3: 62.7}
