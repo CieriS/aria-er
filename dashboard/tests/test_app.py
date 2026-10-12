@@ -48,6 +48,20 @@ def test_app_reports_a_missing_warehouse(tmp_path: Path, monkeypatch: pytest.Mon
     assert "make transform" in app.error[0].value
 
 
+def test_app_credits_its_sources_even_without_data(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AQ_DUCKDB_PATH", str(tmp_path / "missing.duckdb"))
+
+    app = AppTest.from_file(APP).run()
+
+    credits = [caption.value for caption in app.sidebar.caption]
+    assert len(credits) == 1
+    assert "ARPAE Emilia-Romagna" in credits[0]
+    # Open-Meteo asks for a link next to the data.
+    assert "(https://open-meteo.com/)" in credits[0]
+
+
 def test_emptying_a_filter_shows_a_message_instead_of_a_chart(
     warehouse_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
