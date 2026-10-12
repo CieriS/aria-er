@@ -13,9 +13,8 @@ Start the emulator and build the fixtures first (`make bigquery-dialect-check` d
 
     uv run --group cloud python scripts/check_bigquery_dialect.py --duckdb /tmp/aria_er_fixtures.duckdb
 
-What it does not cover: dbt's own BigQuery materialisations (merge, snapshot, seed load),
-external tables over Cloud Storage, and the execution of the RANGE window frame of the
-8-hour mean, which the emulator's SQLite back end cannot run (its SQL is still analysed).
+What it does not cover: dbt's own BigQuery materialisations (merge, snapshot, seed load)
+and external tables over Cloud Storage.
 """
 
 import argparse
@@ -49,21 +48,13 @@ RAW_TABLES = {
     "arpae_stations": ("arpae/stations/*/*.parquet", "stations"),
     "arpae_station_types": ("arpae/station_types/*/*.parquet", "station_types"),
 }
-# Model whose window frame the emulator analyses but cannot execute, with the columns of
-# the empty table that stands in for it so that the models downstream are still checked.
-NOT_EXECUTABLE = {
-    "int_o3_8h_rolling": (
-        "station_id int64, pollutant_id int64, pollutant_code string, "
-        "measured_at_utc datetime, measurement_date date, rolling_8h_mean_ugm3 float64, "
-        "valid_hours_in_window int64, is_valid_window bool"
-    )
-}
-# Results compared with DuckDB, and the rows left out because of the stand-in above.
+# Results compared with DuckDB, with the condition selecting the rows to compare.
 COMPARED = {
     "int_measurements_deduplicated": "true",
     "int_measurements_daily": "true",
     "int_weather_daily": "true",
-    "mart_exceedances_yearly": "metric <> 'daily_max_8h_mean'",
+    "int_o3_8h_rolling": "true",
+    "mart_exceedances_yearly": "true",
     "mart_pollutant_trend": "true",
     "mart_traffic_vs_background": "true",
     "mart_weather_correlation": "true",
@@ -208,12 +199,8 @@ def build_models(emulator: Emulator, nodes: dict[str, Any], target_path: str) ->
                 emulator.run(f"create table {table} as\n{sql}")
                 print(f"model {name}: {emulator.run(f'select count(*) from {table}')[0][0]} rows")
             except Exception as error:  # noqa: BLE001 - every failure is reported
-                if name in NOT_EXECUTABLE and "failed to exec" in str(error):
-                    emulator.run(f"create table {table} ({NOT_EXECUTABLE[name]})")
-                    print(f"model {name}: analysed only (the emulator cannot execute its window frame)")
-                else:
-                    broken.add(key)
-                    problems.append(f"{name}: {str(error)[-400:]}")
+                broken.add(key)
+                problems.append(f"{name}: {str(error)[-400:]}")
     return problems
 
 

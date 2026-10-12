@@ -29,8 +29,6 @@ What does not work, is approximate, or is still manual.
   checked against the yearly files, the CKAN datastore and the bulletins ([data.md](data.md)).
 - Which pollutants are daily is configured twice (`arpae.daily_pollutant_ids` in the ingestor,
   `averaging_minutes` in the dbt seed) and must match.
-- Ozone exceedance days of 2026 differ from the ARPAE bulletin by 1 to 3 days for a third of the
-  stations ([transformations.md](transformations.md)).
 - Rows deleted upstream are not removed from the raw layer (upsert only), and previous values of
   revised rows are not kept.
 - **Archive data is a sample** of the files kept in the repository: 2025 PM10, PM2.5 and NO2 for the
@@ -39,7 +37,6 @@ What does not work, is approximate, or is still manual.
   station, once ingested (`make ingest FROM=2026-01-01`); a first start only loads the last 30 days.
 - A *corrected* value in an archive file already loaded, older than the 30-day lookback, needs
   `dbt build --full-refresh` to reach the marts. New archive rows are picked up on their own.
-- An 8-hour window ending on a missing hour is not produced; days with many gaps may lack a few windows.
 - Station types come from the ARPAE station registry (`qa_stazioni`), snapshotted at every run, so a
   reclassification is picked up. If the registry stops stating the exposure, the last snapshot that
   did is used, then a reference seed frozen at 2026-10-04, and a `warn` test lists the stations

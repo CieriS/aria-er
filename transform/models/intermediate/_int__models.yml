@@ -123,8 +123,9 @@ models:
   - name: int_o3_8h_rolling
     description: >
       Rolling 8-hour mean for pollutants with an 8-hour limit (ozone), one row per
-      station and hour ending the window. A window is valid with at least 6 valid hours.
-      Windows ending on a missing hour are not produced.
+      station and hour ending the window, for every hour between the first and the last
+      day of a series, measured or not. A window is valid with at least 6 valid hours,
+      whether or not the hour it ends on is one of them.
     data_tests:
       - unique_combination:
           arguments:
@@ -144,7 +145,7 @@ models:
       - name: measurement_date
         description: Day the window belongs to (the day in which it ends), local standard time.
       - name: rolling_8h_mean_ugm3
-        description: Mean of the valid hourly values in the window, in µg/m³.
+        description: Mean of the valid hourly values in the window, in µg/m³; null when it has none.
       - name: valid_hours_in_window
         description: Valid hourly values in the window (at most 8).
       - name: is_valid_window
@@ -211,3 +212,54 @@ models:
         description: Version (date) of the latest source record seen for the station.
       - name: extracted_on
         description: Date that snapshot was downloaded.
+
+unit_tests:
+  - name: o3_windows_exist_for_missing_hours
+    model: int_o3_8h_rolling
+    description: >
+      Hours 00 to 08 of a day in local standard time, with the third one missing. The
+      window ending on the missing hour exists, and the one ending on the ninth hour, not
+      measured either, is valid with six of its eight hours. Invalid values are left out.
+    overrides:
+      vars:
+        local_utc_offset_hours: 1
+    given:
+      - input: ref('air_quality_limits')
+        rows:
+          - {pollutant_id: 7, metric: daily_max_8h_mean}
+      - input: ref('int_measurements_deduplicated')
+        rows:
+          - {station_id: 1, pollutant_id: 7, pollutant_code: O3, measurement_date: 2026-06-01, measured_at_utc: '2026-06-01 00:00:00', concentration_ugm3: 16, is_valid: true}
+          - {station_id: 1, pollutant_id: 7, pollutant_code: O3, measurement_date: 2026-06-01, measured_at_utc: '2026-06-01 01:00:00', concentration_ugm3: 16, is_valid: true}
+          - {station_id: 1, pollutant_id: 7, pollutant_code: O3, measurement_date: 2026-06-01, measured_at_utc: '2026-06-01 03:00:00', concentration_ugm3: 16, is_valid: true}
+          - {station_id: 1, pollutant_id: 7, pollutant_code: O3, measurement_date: 2026-06-01, measured_at_utc: '2026-06-01 04:00:00', concentration_ugm3: 16, is_valid: true}
+          - {station_id: 1, pollutant_id: 7, pollutant_code: O3, measurement_date: 2026-06-01, measured_at_utc: '2026-06-01 05:00:00', concentration_ugm3: 16, is_valid: true}
+          - {station_id: 1, pollutant_id: 7, pollutant_code: O3, measurement_date: 2026-06-01, measured_at_utc: '2026-06-01 06:00:00', concentration_ugm3: 16, is_valid: true}
+          - {station_id: 1, pollutant_id: 7, pollutant_code: O3, measurement_date: 2026-06-01, measured_at_utc: '2026-06-01 07:00:00', concentration_ugm3: 16, is_valid: true}
+          - {station_id: 1, pollutant_id: 7, pollutant_code: O3, measurement_date: 2026-06-01, measured_at_utc: '2026-06-01 02:00:00', concentration_ugm3: -5, is_valid: false}
+    expect:
+      rows:
+        - {measured_at_utc: '2026-06-01 00:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 1, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 01:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 2, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 02:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 2, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 03:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 3, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 04:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 4, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 05:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 5, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 06:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 6, rolling_8h_mean_ugm3: 16, is_valid_window: true}
+        - {measured_at_utc: '2026-06-01 07:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 7, rolling_8h_mean_ugm3: 16, is_valid_window: true}
+        - {measured_at_utc: '2026-06-01 08:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 6, rolling_8h_mean_ugm3: 16, is_valid_window: true}
+        - {measured_at_utc: '2026-06-01 09:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 5, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 10:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 5, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 11:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 4, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 12:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 3, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 13:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 2, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 14:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 1, rolling_8h_mean_ugm3: 16, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 15:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 0, rolling_8h_mean_ugm3: null, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 16:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 0, rolling_8h_mean_ugm3: null, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 17:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 0, rolling_8h_mean_ugm3: null, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 18:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 0, rolling_8h_mean_ugm3: null, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 19:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 0, rolling_8h_mean_ugm3: null, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 20:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 0, rolling_8h_mean_ugm3: null, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 21:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 0, rolling_8h_mean_ugm3: null, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 22:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 0, rolling_8h_mean_ugm3: null, is_valid_window: false}
+        - {measured_at_utc: '2026-06-01 23:00:00', measurement_date: 2026-06-01, valid_hours_in_window: 0, rolling_8h_mean_ugm3: null, is_valid_window: false}

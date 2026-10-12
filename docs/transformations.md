@@ -18,7 +18,7 @@ least once.
 | snapshot | `snap_arpae__stations` | Type 2 history of the registry |
 | intermediate | `int_measurements_deduplicated` | Incremental fact, one row per natural key, with quality flags |
 | intermediate | `int_measurements_daily` | Daily mean, maximum and coverage |
-| intermediate | `int_o3_8h_rolling` | Rolling 8-hour ozone mean |
+| intermediate | `int_o3_8h_rolling` | Rolling 8-hour ozone mean, on every hour between the first and last day of a series |
 | intermediate | `int_stations_current` | Current attributes of each station |
 | mart | `mart_exceedances_yearly` | Exceedances of each legal limit per station and year |
 | mart | `mart_data_completeness` | Coverage per station, pollutant and day, including empty days |
@@ -92,16 +92,19 @@ was compared with the bulletin of 2026-10-08, the last day both cover:
 |---|---|---|
 | PM10 days above 50 µg/m³ | 64 | 64 |
 | NO2 hours above 200 µg/m³ | 65 | 65 (none anywhere) |
-| O3 days with 8-hour maximum above 120 µg/m³ | 43 | 29; the other 14 differ by 1 to 3 days |
+| O3 days with 8-hour maximum above 120 µg/m³ | 43 | 43 |
 
 - The PM10 counts are identical only when the daily value is rounded to a whole number
   before the comparison; on the unrounded values 24 stations count one or more days too
   many. This is where the rounding rule above comes from.
 - The check also confirms the station id map and the day a daily value belongs to: a
   one-day shift moves exceedances across months and stations stop matching.
-- The ozone differences are not explained. Rounding the hourly values first, or dropping
-  the coverage rule for the day, both match fewer stations. The 2025 counts for the two
-  Bologna stations still equal the annual report.
+- The ozone counts matched for 29 stations only until the 8-hour windows were computed on
+  every hour of the day. A window that ends on an hour without a measurement was not
+  produced, so a day with a few missing hours fell below the 18 windows the law asks for and
+  was not counted. With the windows on a complete hourly grid, and the same legal rule, all
+  43 stations match. The 2025 counts of the two Bologna stations still equal the annual
+  report.
 
 ### Ten years of PM10 in Bologna
 
