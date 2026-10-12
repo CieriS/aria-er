@@ -1,0 +1,37 @@
+name: Docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docker/**
+      - docker-compose.yml
+      - ingestor/**
+      - "*/pyproject.toml"
+      - "*/uv.lock"
+      - .github/workflows/docker.yml
+  pull_request:
+    paths:
+      - docker/**
+      - docker-compose.yml
+      - ingestor/**
+      - "*/pyproject.toml"
+      - "*/uv.lock"
+      - .github/workflows/docker.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build the images of the local stack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # What `make up` builds, plus the one-off ingestor image.
+      - name: Build
+        run: docker compose --profile tools build
