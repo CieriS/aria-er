@@ -32,10 +32,17 @@ historized and tested dataset that answers questions like:
 
 ## Status
 
-🚧 Work in progress — phases 0 to 6 are complete (exploration, Rust ingestor, dbt models,
-Dagster orchestration, Open-Meteo weather, Streamlit dashboard, containers and CI). See the
-[roadmap](#roadmap). Phase 7 (Google Cloud) is implemented but not yet run on a real project:
-see [docs/cloud.md](docs/cloud.md).
+**It runs.** On a machine with only Docker, `make up` on a fresh clone ingests ten years of
+measurements and the last 30 days, builds and tests the marts and serves the dashboard, in
+about six minutes (last checked on a clean clone on 2026-10-12).
+
+**Not done:** the Google Cloud target is implemented and tested on an emulator, but has never
+run on a real project ([docs/cloud.md](docs/cloud.md)). What is approximate or manual is in
+[docs/limitations.md](docs/limitations.md).
+
+| Dashboard, after `make up` | Dagster asset lineage |
+|---|---|
+| ![Exceedances of the PM10 limit per year for the three Bologna stations](docs/img/dashboard-exceedances.png) | ![Assets from the raw layer to the five marts](docs/img/dagster-lineage.png) |
 
 ## Quick start
 
@@ -46,7 +53,7 @@ make up      # Dagster on http://localhost:3000, dashboard on http://localhost:8
 make down
 ```
 
-On a fresh clone the stack loads its own data; after about five minutes the dashboard shows
+On a fresh clone the stack loads its own data; after about six minutes the dashboard shows
 ten years of measurements. Without Docker (Rust toolchain, [uv](https://docs.astral.sh/uv/)
 and `make`):
 
@@ -87,7 +94,7 @@ Open-Meteo ────┘                          │
                                  Streamlit dashboard
 ```
 
-Everything in the diagram exists except the cloud warehouse, which is the next phase.
+Everything in the diagram runs locally; the BigQuery side has only run on an emulator.
 
 ## Documentation
 
