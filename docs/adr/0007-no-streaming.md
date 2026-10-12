@@ -1,6 +1,6 @@
 # 0007 — Streaming is not justified for these data
 
-Status: proposed (phase 8) — awaiting approval. If approved, the phase closes here.
+Status: accepted (2026-10-12). Phase 8 closes here.
 
 ## Question
 
