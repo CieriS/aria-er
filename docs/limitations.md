@@ -7,9 +7,11 @@ What does not work, is approximate, or is still manual.
 - **The archive is loaded from local files, not downloaded.** It is hosted on Google Drive without a
   stable API (the file list is an HTML page), so new files are added to `data/samples/arpae/` by
   hand.
-- **The source can be stale.** The CKAN datastore stopped on 2026-09-17 and was replaced; on
-  2026-10-11 (a Sunday) the newest value of the REST archive was from 11:00 of Friday
-  2026-10-09. Only `dbt source freshness` says so, as a warning after 48 hours.
+- **Recent data stop on 2026-10-09.** The CKAN datastore stopped on 2026-09-17 and was
+  replaced by the REST archive, which was loaded in one go on 2026-10-09 and has not been
+  written since (checked on 2026-10-12, [data.md](data.md)). Until ARPAE feeds it again the
+  daily schedule ingests nothing new and the freshness checks stay in warning: that is what
+  they are for, but nothing else alerts.
 - **Identifiers of the REST archive are mapped by hand.** `arpae.station_ids` and
   `arpae.pollutant_ids` in the ingestor configuration translate them to the registry codes.
   A new station is left out, with a warning, until it is added; ethylbenzene and m,p-xylene
@@ -49,7 +51,7 @@ What does not work, is approximate, or is still manual.
 - The schedule and UI backfills need the local daemon running; nothing runs when the machine is off.
 - A range of days is all-or-nothing: if the run fails, every partition in it is marked failed.
 - The registry snapshot is shown as daily-partitioned in Dagster although it is a dated extraction.
-- Partitions start on 2026-01-01: earlier years of the REST archive (it goes back to late 2021)
+- Partitions start on 2026-01-01: earlier years of the REST archive (complete from 2022)
   can be ingested with `make ingest FROM=... TO=...` but are not scheduled; the yearly files win
   over them for the same key anyway.
 - Weather is a ~10 km reanalysis, not a measurement at the station, and stations within the same

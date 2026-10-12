@@ -3,8 +3,8 @@
 # AQ_<SECTION>__<KEY>, e.g. AQ_RUN__REPROCESS_WINDOW_DAYS=45.
 
 [arpae]
-# Measurement archive of the ARPAE REST service: hourly and daily values from late 2021,
-# first published a few hours after measurement and revised as they are validated.
+# Measurement archive of the ARPAE REST service: hourly and daily values with the
+# validation stages they have passed.
 measurements_url = "https://apps.arpae.it/REST/qa_archivio_dati_public"
 stations_csv_url = "https://docs.google.com/spreadsheets/d/1-4wgZ8JeLeg0bODTSFUrshPY-_y9mERUu0FJtSFr78s/export?format=csv"
 # Station registry carrying the type of each station (traffic, background, industrial).

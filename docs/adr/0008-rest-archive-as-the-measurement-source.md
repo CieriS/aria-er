@@ -7,7 +7,7 @@ Status: accepted (2026-10-12), supersedes 0002
 The CKAN datastore read since phase 1 ([ADR 0002](0002-near-real-time-datastore-as-phase-1-source.md))
 has had no measurement after 2026-09-17. ARPAE publishes the same network on the archive of its
 REST service, `https://apps.arpae.it/REST/qa_archivio_dati_public`: about 10.5 million records
-from late 2021 onwards, with the offset in the timestamp, the unit in the record and the
+from December 2019 (complete from 2022), with the offset in the timestamp, the unit in the record and the
 validation stages passed so far.
 
 It is the same data in a different shape. Checked on 2026-09-16, a day present in both sources,
@@ -93,4 +93,7 @@ following day.
 - The archive covers more stations (68 against 46: the local networks come in) but fewer
   series of NO and NOx: about fifteen stations that had them in the datastore do not in the
   archive. No limit is counted on them.
-- The archive is itself not continuously fed: see `docs/limitations.md`.
+- Whether the archive is fed continuously is not known: all of it was loaded on 2026-10-09
+  and it has not been written since (`docs/data.md`, update of 2026-10-12). It is still the
+  only source with 2026 in full, so the decision holds for history; what the project shows
+  as "recent" if the archive stays still is open (#40).
