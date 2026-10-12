@@ -14,9 +14,8 @@ to stay inside the GCP free tier.
 > - **Terraform**: `fmt` and `validate`.
 >
 > Still unverified until the first real run: writing to an actual bucket, the external
-> tables over Cloud Storage, IAM, dbt's own BigQuery materialisations (merge, snapshot,
-> seed load) and the execution of the window frame of the 8-hour ozone mean, which the
-> emulator can analyse but not run.
+> tables over Cloud Storage, IAM and dbt's own BigQuery materialisations (merge, snapshot,
+> seed load).
 
 ## What runs where
 

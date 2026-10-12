@@ -73,6 +73,9 @@ Checked against ARPAE's own reports ([details](docs/transformations.md)):
 - **Exceedances**: PM10 exceedance days of the Bologna stations match the ARPAE report for
   every year from 2016 to 2025; in 2025 one station in the region is above the 35 allowed
   days (Modena – Giardini, 40), as in ARPAE's regional summary.
+- **Current year**: for 2026 the exceedances counted since 1 January equal ARPAE's daily
+  bulletin of 8 October for every station it lists: PM10 days at 64 stations, NO2 hours at
+  65, ozone days at 43.
 - **Traffic**: in 2025 NO2 at traffic stations is 5 to 16 µg/m³ above the background of the
   same city; PM2.5 shows no difference.
 - **Weather**: in winter PM10 falls with wind at 41 of 42 stations (correlation −0.39 on

@@ -50,21 +50,6 @@
 {%- endmacro %}
 
 
-{# Whole hours since 1970 of a naive timestamp: a numeric key for RANGE window frames,
-   which BigQuery only accepts on numbers. #}
-{% macro hours_since_epoch(column) -%}
-    {{ return(adapter.dispatch('hours_since_epoch', 'aria_er')(column)) }}
-{%- endmacro %}
-
-{% macro default__hours_since_epoch(column) -%}
-    cast(epoch({{ column }}) / 3600 as bigint)
-{%- endmacro %}
-
-{% macro bigquery__hours_since_epoch(column) -%}
-    datetime_diff({{ column }}, datetime '1970-01-01', hour)
-{%- endmacro %}
-
-
 {# A FROM item producing one row per day between two dates (inclusive), as a column
    called `spine_date`. Use it after a comma or CROSS JOIN, correlated to the dates. #}
 {% macro unnest_days(first_date, last_date) -%}
