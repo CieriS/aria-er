@@ -1,9 +1,12 @@
 # syntax=docker/dockerfile:1
 
 # --- dependencies: a virtual environment with Streamlit ---
-FROM python:3.14-slim-bookworm AS dependencies
+FROM python:3.12-slim-bookworm AS dependencies
 COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
-ENV UV_LINK_MODE=copy
+# The projects require Python 3.12: with another interpreter in the image uv would download
+# its own under /root, which the runtime stage does not have. Fail the build instead.
+ENV UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
 WORKDIR /app/dashboard
 COPY dashboard/pyproject.toml dashboard/uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -13,7 +16,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
 # --- runtime: the dashboard, reading the warehouse volume ---
-FROM python:3.14-slim-bookworm AS runtime
+FROM python:3.12-slim-bookworm AS runtime
 RUN useradd --create-home --uid 1000 aria
 WORKDIR /app/dashboard
 COPY --from=dependencies --chown=aria:aria /app/dashboard /app/dashboard

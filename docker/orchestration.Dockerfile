@@ -4,15 +4,20 @@
 FROM rust:1-slim-bookworm AS ingestor
 WORKDIR /src
 COPY ingestor/ ./
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/src/target \
+# The ingestor and the orchestration images run this same build and share its caches:
+# `locked` makes the second wait for the first instead of unpacking the same crates.
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,target=/src/target,sharing=locked \
     cargo build --release --locked --bin aq-ingest \
     && cp target/release/aq-ingest /usr/local/bin/aq-ingest
 
 # --- dependencies: a virtual environment with Dagster and dbt ---
-FROM python:3.14-slim-bookworm AS dependencies
+FROM python:3.12-slim-bookworm AS dependencies
 COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
-ENV UV_LINK_MODE=copy
+# The projects require Python 3.12: with another interpreter in the image uv would download
+# its own under /root, which the runtime stage does not have. Fail the build instead.
+ENV UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
 WORKDIR /app/orchestration
 COPY orchestration/pyproject.toml orchestration/uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -22,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
 # --- runtime: Dagster with the dbt project and the ingestor binary ---
-FROM python:3.14-slim-bookworm AS runtime
+FROM python:3.12-slim-bookworm AS runtime
 RUN useradd --create-home --uid 1000 aria \
     && mkdir -p /app/raw /app/warehouse /app/dagster_home \
     && chown -R aria:aria /app

@@ -36,6 +36,11 @@ updates:
     groups:
       images:
         patterns: ["*"]
+    ignore:
+      # The Python projects pin 3.12 (`requires-python`): a newer minor in the image breaks
+      # the virtual environment. Raise it together with the projects, by hand.
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: terraform
     directory: /infra

@@ -14,6 +14,7 @@ dependency cache:
 | [dbt](../.github/workflows/dbt.yml), second job | The same models compiled for BigQuery and executed on the BigQuery emulator, results compared with DuckDB (`make bigquery-dialect-check`) |
 | [Terraform](../.github/workflows/terraform.yml) | `terraform fmt -check`, `validate`, and `plan` (never `apply`) when GCP settings exist; only on changes under `infra/` |
 | [dbt](../.github/workflows/dbt.yml) | `dbt build` on DuckDB with the committed fixtures, twice (full and incremental) |
+| [Docker](../.github/workflows/docker.yml) | `docker compose build` of the images `make up` starts; only on changes to the Dockerfiles, the compose file, the ingestor or the Python dependencies |
 
 No workflow calls ARPAE or Open-Meteo: sources are mocked behind traits in Rust, and dbt
 reads `transform/fixtures/`. `make transform-fixtures` runs the dbt job locally. Actions are
