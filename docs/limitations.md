@@ -7,9 +7,11 @@ What does not work, is approximate, or is still manual.
 - **The archive is loaded from local files, not downloaded.** It is hosted on Google Drive without a
   stable API (the file list is an HTML page), so new files are added to `data/samples/arpae/` by
   hand.
-- **The source can be stale.** The CKAN datastore stopped on 2026-09-17 and was replaced; on
-  2026-10-11 (a Sunday) the newest value of the REST archive was from 11:00 of Friday
-  2026-10-09. Only `dbt source freshness` says so, as a warning after 48 hours.
+- **Recent data stop on 2026-10-09.** The CKAN datastore stopped on 2026-09-17 and was
+  replaced by the REST archive, which was loaded in one go on 2026-10-09 and has not been
+  written since (checked on 2026-10-12, [data.md](data.md)). Until ARPAE feeds it again the
+  daily schedule ingests nothing new and the freshness checks stay in warning: that is what
+  they are for, but nothing else alerts.
 - **Identifiers of the REST archive are mapped by hand.** `arpae.station_ids` and
   `arpae.pollutant_ids` in the ingestor configuration translate them to the registry codes.
   A new station is left out, with a warning, until it is added; ethylbenzene and m,p-xylene

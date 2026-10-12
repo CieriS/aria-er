@@ -93,4 +93,7 @@ following day.
 - The archive covers more stations (68 against 46: the local networks come in) but fewer
   series of NO and NOx: about fifteen stations that had them in the datastore do not in the
   archive. No limit is counted on them.
-- The archive is itself not continuously fed: see `docs/limitations.md`.
+- Whether the archive is fed continuously is not known: all of it was loaded on 2026-10-09
+  and it has not been written since (`docs/data.md`, update of 2026-10-12). It is still the
+  only source with 2026 in full, so the decision holds for history; what the project shows
+  as "recent" if the archive stays still is open (#40).
