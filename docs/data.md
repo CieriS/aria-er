@@ -10,7 +10,7 @@ dataset [`qualita-dell-aria-rete-di-monitoraggio`](https://dati.arpae.it/dataset
 
 | Source | Access | Coverage |
 |---|---|---|
-| Recent measurements | REST `qa_archivio_dati_public` | About 10.5 million records from late 2021 onwards: 68 stations in 2026, hourly and daily values with offset, unit and validation stages |
+| Recent measurements | REST `qa_archivio_dati_public` | About 10.5 million records from December 2019, sparse before 2022 (1.7 million a year since): 68 stations in 2026, hourly and daily values with offset, unit and validation stages |
 | Historical measurements | Google Drive folder, one CSV per year × station × pollutant | 2010–2025, validated |
 | Station registry | Google Sheets CSV export | Current stations and their pollutants |
 | Station types | REST `qa_stazioni` | 77 stations: exposure (`tipo_stazione`), area (`zona`), coordinates, network |
@@ -70,16 +70,22 @@ saving days) and is now confirmed by ARPAE itself: the REST archive publishes
 
 - **2026-09-17, CKAN datastore**: the newest measurement has been dated 2026-09-17 since at least
   1 October. The resource description says it is updated daily; it is not being updated.
-- **2026-10-09, REST archive**: `qa_archivio_dati_public` appeared, with fresh hourly values
-  published in batches a few hours after measurement. It uses new station and parameter
+- **2026-10-09, REST archive**: `qa_archivio_dati_public` appeared, with hourly values up to
+  a few hours before. It uses new station and parameter
   identifiers (Porta San Felice is `1103`, NO2 is `32`; the bulletin maps them through
   `originalidstazione`), unrounded values, and stamps a daily value at the *end* of its day
   (the PM10 of 23 February 2025 is at `2025-02-24T00:00:00+01:00`), unlike the yearly files.
   Taken together with the bulletin change below, ARPAE appears to be moving to a new platform.
-- **2026-10-11, REST archive**: it is now the source of recent measurements. Its last write
-  dates from 2026-10-09 13:20 UTC and its newest value from 11:00 of that day (a Friday): on
-  the following Sunday nothing had been added. Whether it is fed on working days only is
-  not known yet.
+- **2026-10-11, REST archive**: it is now the source of recent measurements.
+- **2026-10-12, REST archive**: there is no evidence yet that it is fed continuously. Every
+  one of its 10.5 million records was created on Friday 2026-10-09 between 08:32 and 13:20 UTC
+  (`sort=_created` gives 08:32:39 as the oldest and 13:20:28 as the newest): the whole
+  archive, back to 2019, is a single load of that day. The most recent hours were written in
+  three passes (08:32, 09:55 and 12:01 UTC, each adding the hours measured since the one
+  before), then nothing: the newest value is still 11:00 of 9 October on Monday 12 at 08:33
+  UTC. The daily bulletins (`bollettini_qa`) kept coming every morning, weekend included, so
+  ARPAE's own publication is alive; the CKAN datastore is still at 2026-09-17. Followed in
+  [#40](https://github.com/CieriS/aria-er/issues/40).
 - **2026-10-11, daily values of the CKAN datastore**: comparing the datastore with the
   bulletins showed that it dated a daily value at the end of its day too (the PM10 the
   bulletin of 9 August reports is the one the datastore dated 10 August), against the note

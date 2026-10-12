@@ -84,3 +84,10 @@ Option 3, with option 2 as the path if fresher data is ever wanted. No streaming
   ingestor's near-real-time source has stopped updating while ARPAE publishes fresh data on
   a new API (see `docs/data.md` and `docs/limitations.md`). Moving the ingestion to that
   API is the next piece of work worth doing, and it is a batch change.
+
+## Update, 2026-10-12
+
+The three "batches" of 9 October in the table above were passes of the single load that
+created the whole REST archive that day; nothing has been written to it since
+(`docs/data.md`). The freshest publication ever observed is therefore not a rhythm ARPAE
+keeps. The decision stands, with one argument more: the source is not even a regular batch yet.
