@@ -4,8 +4,10 @@
 FROM rust:1-slim-bookworm AS ingestor
 WORKDIR /src
 COPY ingestor/ ./
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/src/target \
+# The ingestor and the orchestration images run this same build and share its caches:
+# `locked` makes the second wait for the first instead of unpacking the same crates.
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,target=/src/target,sharing=locked \
     cargo build --release --locked --bin aq-ingest \
     && cp target/release/aq-ingest /usr/local/bin/aq-ingest
 
