@@ -16,6 +16,8 @@ answers one of the questions at the top of this README:
 | Data completeness | How complete are the data of each station, day by day? | `mart_data_completeness` |
 
 Filters (stations, pollutant, municipality, period) are in the sidebar of each page.
+Below them the sidebar credits the two data sources on every page, as their licences ask
+(ARPAE: CC BY; Open-Meteo: CC BY 4.0, with a link).
 
 The dashboard reads marts only and computes nothing: `data.py` holds one filtered `select`
 per mart, `charts.py` turns a mart DataFrame into an Altair chart, `views.py` wires widgets

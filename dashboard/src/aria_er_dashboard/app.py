@@ -5,6 +5,13 @@ import streamlit as st
 from aria_er_dashboard import views
 from aria_er_dashboard.data import MartsUnavailableError
 
+# Both licences (CC BY) ask for credit where the data are shown; Open-Meteo also for a link.
+SOURCES = (
+    "Air quality data: [ARPAE Emilia-Romagna](https://dati.arpae.it/dataset/"
+    "qualita-dell-aria-rete-di-monitoraggio) (CC BY), processed by aria-er. "
+    "[Weather data by Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)."
+)
+
 PAGES = [
     st.Page(views.exceedances, title="Exceedances", url_path="exceedances", default=True),
     st.Page(views.trend, title="Trend", url_path="trend"),
@@ -21,6 +28,7 @@ def main() -> None:
         page.run()
     except MartsUnavailableError as error:
         st.error(str(error))
+    st.sidebar.caption(SOURCES)
 
 
 main()

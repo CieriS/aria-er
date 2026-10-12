@@ -145,4 +145,14 @@ Makefile              ingest / transform / orchestrate / backfill / dashboard / 
 
 ## License and data
 
-Data © ARPAE Emilia-Romagna, published as open data. Check the license on the dataset page before reuse.
+The data are not mine and keep their own licences; both ask for attribution:
+
+- **Air quality**: © ARPAE Emilia-Romagna, dataset
+  [Qualità dell'Aria – Dati di monitoraggio](https://dati.arpae.it/dataset/qualita-dell-aria-rete-di-monitoraggio),
+  published under Creative Commons Attribution (CC BY). The samples in `data/samples/` and the
+  fixtures in `transform/fixtures/` and in the ingestor tests are excerpts of it; the marts are
+  derived from it (units converted, values aggregated, suspicious values flagged).
+- **Weather**: [Weather data by Open-Meteo.com](https://open-meteo.com/), under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), from its historical archive.
+
+The dashboard shows the same credits on every page.
