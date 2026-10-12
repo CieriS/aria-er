@@ -23,13 +23,17 @@ packages and base images.
 
 ### Branch protection
 
-`main` only changes through pull requests that pass the CI. The rule to set under
-*Settings → Rules → Rulesets* (target: default branch):
+`main` only changes through pull requests that pass the CI. The ruleset `main`
+(*Settings → Rules → Rulesets*, target: default branch) is active since 2026-10-12, with no
+bypass:
 
-- **Require a pull request before merging** (no direct pushes to `main`).
-- **Require status checks to pass**, with the branch up to date, for these checks:
-  `fmt, clippy, test`, `orchestration (ruff, mypy, pytest)`, `dashboard (ruff, mypy, pytest)`
-  and `dbt build on fixtures (DuckDB)`.
-- **Block force pushes** and branch deletion.
+- **A pull request is required** (no direct pushes to `main`).
+- **Status checks must pass**, with the branch up to date: `fmt, clippy, test`,
+  `orchestration (ruff, mypy, pytest)`, `dashboard (ruff, mypy, pytest)`,
+  `dbt build on fixtures (DuckDB)` and `BigQuery dialect (emulator)`.
+- **Force pushes and deletion are blocked.**
+
+The Docker and Terraform checks are filtered by path, so they cannot be required: a pull
+request that does not touch their files would wait for them forever.
 
 Approvals are not required: this is a single-maintainer repository, so the gate is the CI.
