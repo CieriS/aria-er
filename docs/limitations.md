@@ -9,8 +9,9 @@ What does not work, is approximate, or is still manual.
   hand.
 - **How recent the data are depends on a source that has already paused twice.** The CKAN
   datastore stopped on 2026-09-17 and was replaced by the REST archive, which was loaded on
-  2026-10-09, stayed still for almost four days and caught up on 2026-10-13
-  ([data.md](data.md)). During a pause the daily schedule ingests nothing new and the
+  2026-10-09, stayed still for almost four days, caught up on 2026-10-13 and has since
+  added each hour about one hour after it ends ([data.md](data.md)). The schedule runs once
+  a day, so the dashboard is at most a day behind the archive. During a pause the daily schedule ingests nothing new and the
   freshness checks go into warning after 48 hours: that is what they are for, but nothing
   else alerts.
 - **Revisions of values already in the archive have not been observed yet.** When the archive

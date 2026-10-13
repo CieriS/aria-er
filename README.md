@@ -34,9 +34,9 @@ historized and tested dataset that answers questions like:
 
 **It runs.** On a machine with only Docker, `make up` on a fresh clone ingests ten years of
 measurements and the last 30 days, builds and tests the marts and serves the dashboard, in
-about six minutes (last checked on a clean clone on 2026-10-12). How recent the data are
-depends on ARPAE: its archive paused from 9 to 13 October 2026 and then caught up
-([#40](https://github.com/CieriS/aria-er/issues/40)).
+about six minutes (last checked on a clean clone on 2026-10-12). ARPAE adds each hour to
+its archive about an hour after it ends and the schedule ingests once a day; the archive has
+paused for days before and filled the gap afterwards ([docs/data.md](docs/data.md)).
 
 **Not done:** the Google Cloud target is implemented and tested on an emulator, but has never
 run on a real project ([docs/cloud.md](docs/cloud.md)). What is approximate or manual is in

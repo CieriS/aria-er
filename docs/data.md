@@ -92,9 +92,11 @@ saving days) and is now confirmed by ARPAE itself: the REST archive publishes
   to Tuesday 07:05 UTC, a weekend and a Monday, and the gap was filled: 10, 11 and 12 October
   have between 6,050 and 6,350 records each, against about 6,260 on a day of September. The records of 9 October
   written on the Friday were not touched: hours 00 to 11 are still "Non validato" while the
-  hours after them, loaded on the 13th, are "Giornaliera". One catch-up and one hourly
-  addition are not yet a rhythm; what they show is that a pause is filled afterwards rather
-  than lost.
+  hours after them, loaded on the 13th, are "Giornaliera". For the rest of that day
+  a load arrived every 65 minutes or so (08:10, 09:15, 10:20 … 21:13 UTC), each adding the
+  hour that had ended 50 to 70 minutes earlier for about 250 station-parameter series, all
+  "Non validato". That is the rhythm to expect: hourly, about one hour behind, with pauses
+  that are filled afterwards rather than lost.
 - **2026-10-11, daily values of the CKAN datastore**: comparing the datastore with the
   bulletins showed that it dated a daily value at the end of its day too (the PM10 the
   bulletin of 9 August reports is the one the datastore dated 10 August), against the note
