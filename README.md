@@ -34,7 +34,7 @@ historized and tested dataset that answers questions like:
 
 **It runs.** On a machine with only Docker, `make up` on a fresh clone ingests ten years of
 measurements and the last 30 days, builds and tests the marts and serves the dashboard, in
-about six minutes (last checked on a clean clone on 2026-10-12). ARPAE adds each hour to
+six to twelve minutes (last checked on a clean clone on 2026-10-14). ARPAE adds each hour to
 its archive about an hour after it ends and the schedule ingests once a day; the archive has
 paused for days before and filled the gap afterwards ([docs/data.md](docs/data.md)).
 
