@@ -23,6 +23,7 @@ historized and tested dataset that answers questions like:
 
 - **Idempotent, incremental ingestion** written in Rust, handling late-arriving
   and revised data through windowed reprocessing and upserts
+  ([why Rust](docs/decisions.md#phase-1--rust-ingestor), given that the job waits on the network)
 - **Layered modeling** with dbt (staging → intermediate → marts), including
   SCD Type 2 history for monitoring stations
 - **Data quality as code**: uniqueness, completeness and freshness tests
