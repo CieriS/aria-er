@@ -17,6 +17,27 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 
 ## Phase 1 — Rust ingestor
 
+- **Why Rust, for a job that waits on the network.** Not for speed: a month of measurements
+  is about 175,000 rows and nearly all of a run is spent waiting for ARPAE, so a Python
+  script would finish in the same time. There is no benchmark in this repository and none is
+  claimed. The reasons are two.
+  The first is the shape the project wants to show: orchestration and modelling in Python and
+  SQL, the part that touches bytes in a compiled language. It is the split the data tooling
+  itself has taken (Arrow, Polars, DataFusion, and `uv` and `ruff` used here), and the
+  ingestor writes Parquet through the same `arrow` and `parquet` crates those tools are built
+  on.
+  The second is that it was a deliberate way to learn the language on a real problem instead
+  of an exercise, with the compiler as a strict reviewer.
+  What it gives here, and can be pointed at: sources and sinks are traits, so pagination,
+  retries and parsing are tested without a network and the measurement source was replaced
+  without touching the sink or the CLI ([ADR 0008](adr/0008-rest-archive-as-the-measurement-source.md));
+  a record that does not match the expected format stops the run with an error naming the
+  record, because a missing or mistyped field is not representable; Dagster calls one
+  executable with a window and reads its counters, with no Python dependencies shared with
+  dbt or Dagster.
+  What it costs: a second toolchain in the images and in the CI, slower builds, and more
+  code than the Python equivalent. For an ingestor alone, with these volumes and no interest
+  in the language, Python would be the reasonable choice.
 - **Upsert by rewriting partitions** ([ADR 0001](adr/0001-parquet-upsert-by-partition-rewrite.md)).
   Each run merges the incoming rows into the monthly files it touches, by natural key,
   and rewrites them sorted. Re-running a window yields byte-identical files and never
