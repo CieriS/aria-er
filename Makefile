@@ -38,14 +38,14 @@ transform-fixtures:
 
 # Dagster UI on http://localhost:3000, with the daemon that runs schedules and backfills.
 orchestrate: build
-	mkdir -p $(DAGSTER_HOME)
+	mkdir -p $(DAGSTER_HOME) && cp orchestration/dagster.yaml $(DAGSTER_HOME)/
 	$(DAGSTER) dev -m aria_er_orchestration.definitions
 
 # The local archive first, then ingestion + dbt for a range of days as one run:
 # make backfill FROM=2026-08-01 TO=2026-08-31
 backfill: build
 	@test -n "$(FROM)" -a -n "$(TO)" || (echo "usage: make backfill FROM=YYYY-MM-DD TO=YYYY-MM-DD" && exit 1)
-	mkdir -p $(DAGSTER_HOME)
+	mkdir -p $(DAGSTER_HOME) && cp orchestration/dagster.yaml $(DAGSTER_HOME)/
 	$(DAGSTER) job execute -m aria_er_orchestration.definitions -j arpae_archive_load
 	$(DAGSTER) asset materialize -m aria_er_orchestration.definitions --select 'not key:"arpae_raw/measurements_archive"' --partition-range $(FROM)...$(TO)
 

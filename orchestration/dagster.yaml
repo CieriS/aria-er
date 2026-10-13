@@ -1,0 +1,10 @@
+# Dagster instance configuration, copied into DAGSTER_HOME by `make orchestrate` and by
+# the container at start.
+#
+# One run at a time. The raw layer is upserted by reading a monthly file, merging and
+# writing it back, and the warehouse is a single DuckDB file: two runs at once would lose
+# rows in the first and fail on the file lock in the second. A run launched while another
+# is in progress waits in the queue.
+concurrency:
+  runs:
+    max_concurrent_runs: 1

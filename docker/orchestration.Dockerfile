@@ -35,6 +35,7 @@ WORKDIR /app
 COPY --from=ingestor /usr/local/bin/aq-ingest /usr/local/bin/aq-ingest
 COPY --from=dependencies --chown=aria:aria /app/orchestration /app/orchestration
 COPY --chown=aria:aria ingestor/config /app/ingestor/config
+COPY --chown=aria:aria orchestration/dagster.yaml /app/orchestration/dagster.yaml
 COPY --chown=aria:aria transform /app/transform
 COPY --chown=aria:aria data/samples /app/data/samples
 ENV PATH=/app/orchestration/.venv/bin:$PATH \
@@ -47,4 +48,6 @@ USER aria
 RUN cd /app/transform && dbt parse --profiles-dir . --quiet
 WORKDIR /app/orchestration
 EXPOSE 3000
-CMD ["dagster", "dev", "-h", "0.0.0.0", "-p", "3000", "-m", "aria_er_orchestration.definitions"]
+# DAGSTER_HOME is a volume: the instance configuration is copied into it at every start,
+# so that a volume created by an earlier image gets it too.
+CMD ["sh", "-c", "cp /app/orchestration/dagster.yaml \"$DAGSTER_HOME\"/ && exec dagster dev -h 0.0.0.0 -p 3000 -m aria_er_orchestration.definitions"]
