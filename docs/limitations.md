@@ -69,7 +69,10 @@ What does not work, is approximate, or is still manual.
   pyarrow, pandas, DuckDB and Dagster themselves. Not precompiling bytecode saved about 10%.
 - The container stack keeps Dagster's run history in SQLite on a volume: fine for one machine,
   not for several workers.
-- Single writer: two concurrent runs on the same partition would race.
+- Runs launched through Dagster (schedule, sensor, UI) go one at a time: a second one waits in
+  the queue. Nothing stops two `aq-ingest` or `dbt` started by hand, or `make backfill` while
+  the daemon is running a job: both would read the same monthly file and the one that writes
+  last would discard the rows of the other.
 - The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
 - **The cloud target has not been run on a real GCP project yet.** Terraform is validated, the
   storage backend is tested on an in-memory object store, and the BigQuery SQL is executed on an

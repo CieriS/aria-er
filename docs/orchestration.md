@@ -26,6 +26,11 @@ downstream of them.
   the archive load and then the refresh of the last 30 days, one step per minute, and does
   nothing afterwards. Each step is launched at most once a day, so a failing step is not
   retried in a loop.
+- **One run at a time**: the instance configuration ([`orchestration/dagster.yaml`](../orchestration/dagster.yaml),
+  copied into `DAGSTER_HOME` by `make orchestrate` and by the container) caps the run queue
+  at one. The raw layer is upserted by rewriting monthly files and the warehouse is a single
+  DuckDB file, so a schedule that fires during a backfill waits for it instead of running
+  beside it.
 - **Retries**: the ingestion step is retried twice with exponential backoff, on top of the
   HTTP retries inside the ingestor. On failure the run shows the exit code and the last lines
   of the ingestor log.

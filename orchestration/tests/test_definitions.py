@@ -1,7 +1,10 @@
+import shutil
 from datetime import datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from dagster import AssetKey, Definitions, RunRequest, build_schedule_context
+import pytest
+from dagster import AssetKey, DagsterInstance, Definitions, RunRequest, build_schedule_context
 from dagster._core.definitions.unresolved_asset_job_definition import (
     UnresolvedAssetJobDefinition,
 )
@@ -145,3 +148,18 @@ def test_archive_has_its_own_job_and_stays_out_of_the_daily_refresh() -> None:
     assert RAW_ARCHIVE not in refresh.asset_layer.executable_asset_keys
     assert RAW_MEASUREMENTS in refresh.asset_layer.executable_asset_keys
     assert archive.asset_layer.executable_asset_keys == {RAW_ARCHIVE}
+
+
+def test_instance_configuration_allows_one_run_at_a_time(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The file the Makefile and the container copy into DAGSTER_HOME.
+    shutil.copy(Path(__file__).resolve().parents[1] / "dagster.yaml", tmp_path)
+    monkeypatch.setenv("DAGSTER_HOME", str(tmp_path))
+
+    with DagsterInstance.get() as instance:
+        # Runs go through the queue, and the queue lets one through.
+        assert type(instance.run_coordinator).__name__ == "QueuedRunCoordinator"
+        queue = instance.get_concurrency_config().run_queue_config
+        assert queue is not None
+        assert queue.max_concurrent_runs == 1
