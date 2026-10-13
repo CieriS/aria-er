@@ -86,9 +86,10 @@ Notes on the comparison:
 
 Every ARPAE daily bulletin (`bollettini_qa`) carries, for each station, the exceedances
 counted since 1 January. With 2026 ingested from the REST archive, `mart_exceedances_yearly`
-was compared with the bulletin of 2026-10-08, the last day both cover:
+was compared with the bulletin of 2026-10-08, the last day both covered then, and again
+with the bulletin of 2026-10-12 after the archive caught up, with the same result:
 
-| Indicator (1 January – 8 October 2026) | Stations compared | Identical |
+| Indicator (1 January – 12 October 2026) | Stations compared | Identical |
 |---|---|---|
 | PM10 days above 50 µg/m³ | 64 | 64 |
 | NO2 hours above 200 µg/m³ | 65 | 65 (none anywhere) |
