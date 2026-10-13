@@ -86,6 +86,15 @@ saving days) and is now confirmed by ARPAE itself: the REST archive publishes
   UTC. The daily bulletins (`bollettini_qa`) kept coming every morning, weekend included, so
   ARPAE's own publication is alive; the CKAN datastore is still at 2026-09-17. Followed in
   [#40](https://github.com/CieriS/aria-er/issues/40).
+- **2026-10-13, REST archive**: it is fed again. On Tuesday 13 between 07:05 and 08:00 UTC
+  23,882 records were created, covering every hour from 11:00 of 9 October to that morning;
+  at 08:10 UTC 278 more arrived, the hour just ended. So the pause lasted from Friday 12:01
+  to Tuesday 07:05 UTC, a weekend and a Monday, and the gap was filled: 10, 11 and 12 October
+  have between 6,050 and 6,350 records each, against about 6,260 on a day of September. The records of 9 October
+  written on the Friday were not touched: hours 00 to 11 are still "Non validato" while the
+  hours after them, loaded on the 13th, are "Giornaliera". One catch-up and one hourly
+  addition are not yet a rhythm; what they show is that a pause is filled afterwards rather
+  than lost.
 - **2026-10-11, daily values of the CKAN datastore**: comparing the datastore with the
   bulletins showed that it dated a daily value at the end of its day too (the PM10 the
   bulletin of 9 August reports is the one the datastore dated 10 August), against the note

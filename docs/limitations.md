@@ -7,11 +7,16 @@ What does not work, is approximate, or is still manual.
 - **The archive is loaded from local files, not downloaded.** It is hosted on Google Drive without a
   stable API (the file list is an HTML page), so new files are added to `data/samples/arpae/` by
   hand.
-- **Recent data stop on 2026-10-09.** The CKAN datastore stopped on 2026-09-17 and was
-  replaced by the REST archive, which was loaded in one go on 2026-10-09 and has not been
-  written since (checked on 2026-10-12, [data.md](data.md)). Until ARPAE feeds it again the
-  daily schedule ingests nothing new and the freshness checks stay in warning: that is what
-  they are for, but nothing else alerts.
+- **How recent the data are depends on a source that has already paused twice.** The CKAN
+  datastore stopped on 2026-09-17 and was replaced by the REST archive, which was loaded on
+  2026-10-09, stayed still for almost four days and caught up on 2026-10-13
+  ([data.md](data.md)). During a pause the daily schedule ingests nothing new and the
+  freshness checks go into warning after 48 hours: that is what they are for, but nothing
+  else alerts.
+- **Revisions of values already in the archive have not been observed yet.** When the archive
+  caught up it added new records and left the ones of 9 October as they were, still marked
+  "not validated" next to validated later hours. The rolling window re-reads them at every
+  run, so a revision would be picked up; whether ARPAE writes one is not known.
 - **Identifiers of the REST archive are mapped by hand.** `arpae.station_ids` and
   `arpae.pollutant_ids` in the ingestor configuration translate them to the registry codes.
   A new station is left out, with a warning, until it is added; ethylbenzene and m,p-xylene

@@ -34,8 +34,8 @@ historized and tested dataset that answers questions like:
 
 **It runs.** On a machine with only Docker, `make up` on a fresh clone ingests ten years of
 measurements and the last 30 days, builds and tests the marts and serves the dashboard, in
-about six minutes (last checked on a clean clone on 2026-10-12). Measurements stop on
-2026-10-09: ARPAE has not updated its archive since
+about six minutes (last checked on a clean clone on 2026-10-12). How recent the data are
+depends on ARPAE: its archive paused from 9 to 13 October 2026 and then caught up
 ([#40](https://github.com/CieriS/aria-er/issues/40)).
 
 **Not done:** the Google Cloud target is implemented and tested on an emulator, but has never
@@ -76,7 +76,7 @@ Checked against ARPAE's own reports ([details](docs/transformations.md)):
   every year from 2016 to 2025; in 2025 one station in the region is above the 35 allowed
   days (Modena – Giardini, 40), as in ARPAE's regional summary.
 - **Current year**: for 2026 the exceedances counted since 1 January equal ARPAE's daily
-  bulletin of 8 October for every station it lists: PM10 days at 64 stations, NO2 hours at
+  bulletin of 12 October for every station it lists: PM10 days at 64 stations, NO2 hours at
   65, ozone days at 43.
 - **Traffic**: in 2025 NO2 at traffic stations is 5 to 16 µg/m³ above the background of the
   same city; PM2.5 shows no difference.
