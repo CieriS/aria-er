@@ -35,13 +35,18 @@ historized and tested dataset that answers questions like:
 
 **It runs.** On a machine with only Docker, `make up` on a fresh clone ingests ten years of
 measurements and the last 30 days, builds and tests the marts and serves the dashboard, in
-about six minutes (last checked on a clean clone on 2026-10-12). ARPAE adds each hour to
+six to twelve minutes (last checked on a clean clone on 2026-10-14). ARPAE adds each hour to
 its archive about an hour after it ends and the schedule ingests once a day; the archive has
 paused for days before and filled the gap afterwards ([docs/data.md](docs/data.md)).
 
 **Not done:** the Google Cloud target is implemented and tested on an emulator, but has never
 run on a real project ([docs/cloud.md](docs/cloud.md)). What is approximate or manual is in
 [docs/limitations.md](docs/limitations.md).
+
+![Thirty-six seconds of the running stack: the two Dagster runs of a first start, the asset lineage, and four pages of the dashboard](docs/img/tour.gif)
+
+*The stack a fresh clone starts with `make up`, recorded on 2026-10-14: the two runs of the
+first start, the lineage from the raw layer to the marts, and the dashboard.*
 
 | Dashboard, after `make up` | Dagster asset lineage |
 |---|---|
@@ -56,7 +61,8 @@ make up      # Dagster on http://localhost:3000, dashboard on http://localhost:8
 make down
 ```
 
-On a fresh clone the stack loads its own data; after about six minutes the dashboard shows
+On a fresh clone the stack loads its own data; after six to twelve minutes, depending on
+how fast the ARPAE service answers, the dashboard shows
 ten years of measurements. Without Docker (Rust toolchain, [uv](https://docs.astral.sh/uv/)
 and `make`):
 
