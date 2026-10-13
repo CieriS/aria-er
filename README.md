@@ -42,6 +42,11 @@ about six minutes (last checked on a clean clone on 2026-10-12). Measurements st
 run on a real project ([docs/cloud.md](docs/cloud.md)). What is approximate or manual is in
 [docs/limitations.md](docs/limitations.md).
 
+![Thirty-six seconds of the running stack: the two Dagster runs of a first start, the asset lineage, and four pages of the dashboard](docs/img/tour.gif)
+
+*The stack a fresh clone starts with `make up`, recorded on 2026-10-14: the two runs of the
+first start, the lineage from the raw layer to the marts, and the dashboard.*
+
 | Dashboard, after `make up` | Dagster asset lineage |
 |---|---|
 | ![Exceedances of the PM10 limit per year for the three Bologna stations](docs/img/dashboard-exceedances.png) | ![Assets from the raw layer to the five marts](docs/img/dagster-lineage.png) |
@@ -55,7 +60,8 @@ make up      # Dagster on http://localhost:3000, dashboard on http://localhost:8
 make down
 ```
 
-On a fresh clone the stack loads its own data; after about six minutes the dashboard shows
+On a fresh clone the stack loads its own data; after six to twelve minutes, depending on
+how fast the ARPAE service answers, the dashboard shows
 ten years of measurements. Without Docker (Rust toolchain, [uv](https://docs.astral.sh/uv/)
 and `make`):
 
