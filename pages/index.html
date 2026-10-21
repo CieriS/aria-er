@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>aria-er — open data</title>
+    <meta
+      name="description"
+      content="Daily JSON export of the aria-er marts: air quality in Emilia-Romagna from ARPAE open data."
+    />
+    <style>
+      :root {
+        --paper: #ede7db;
+        --ink: #1b1916;
+        --muted: #646057;
+        --line: rgb(27 25 22 / 0.14);
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #0b0b0b;
+          --ink: #ecebe7;
+          --muted: #8c8b86;
+          --line: rgb(236 235 231 / 0.14);
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.6 ui-sans-serif, system-ui, sans-serif;
+      }
+      main {
+        max-width: 44rem;
+        margin: 0 auto;
+        padding: 4rem 1rem 6rem;
+      }
+      h1 {
+        font-size: clamp(2.25rem, 6vw, 3.5rem);
+        letter-spacing: -0.04em;
+        line-height: 1;
+        margin: 0 0 1.5rem;
+      }
+      .label {
+        font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+        text-decoration-color: var(--line);
+      }
+      a:hover {
+        text-decoration-color: currentColor;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 1rem 0 0;
+        border-top: 1px solid var(--line);
+      }
+      li {
+        border-bottom: 1px solid var(--line);
+        padding: 0.9rem 0;
+      }
+      code {
+        font: 14px ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      section {
+        margin-top: 3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="label">aria-er · open data</p>
+      <h1>Air quality in Emilia-Romagna, as JSON.</h1>
+      <p>
+        The marts of <a href="https://github.com/CieriS/aria-er">aria-er</a>, exported every morning by
+        the pipeline itself: exceedances of the legal limits, trends, traffic against background,
+        weather and data completeness, from ARPAE open data.
+      </p>
+      <p class="muted" id="updated">Version 1 of the contract.</p>
+      <p>
+        <a href="https://cieri.vercel.app/systems/ariaer">See them as charts in the case study →</a>
+      </p>
+
+      <section>
+        <p class="label">Files (data/v1)</p>
+        <ul>
+          <li><a href="data/v1/meta.json"><code>meta.json</code></a> <span class="muted">— refresh time, period covered, rows per file, credits</span></li>
+          <li><a href="data/v1/exceedances.json"><code>exceedances.json</code></a> <span class="muted">— days or hours over each legal limit, per station and year</span></li>
+          <li><a href="data/v1/pollutant-trend.json"><code>pollutant-trend.json</code></a> <span class="muted">— annual mean per municipality and pollutant</span></li>
+          <li><a href="data/v1/traffic-vs-background.json"><code>traffic-vs-background.json</code></a> <span class="muted">— monthly traffic and background means in the same municipality</span></li>
+          <li><a href="data/v1/weather-correlation.json"><code>weather-correlation.json</code></a> <span class="muted">— PM10 against wind and rain, per station and season</span></li>
+          <li><a href="data/v1/completeness-monthly.json"><code>completeness-monthly.json</code></a> <span class="muted">— data coverage per station, pollutant and month</span></li>
+        </ul>
+        <p class="muted">
+          Columns, units and time zone:
+          <a href="https://github.com/CieriS/aria-er/blob/main/docs/export.md">the contract</a>.
+          Readable from any origin (CORS open).
+        </p>
+      </section>
+
+      <section>
+        <p class="label">Credits</p>
+        <p class="muted">
+          Air quality data: ARPAE Emilia-Romagna (CC BY), processed by aria-er. Weather data:
+          Open-Meteo (CC BY 4.0). Code: MIT.
+        </p>
+      </section>
+    </main>
+    <script>
+      // The date of the last export, from meta.json; the page reads fine without it.
+      fetch('data/v1/meta.json')
+        .then((response) => (response.ok ? response.json() : null))
+        .then((meta) => {
+          if (!meta) return;
+          const date = new Date(meta.generated_at).toUTCString().replace(' GMT', ' UTC');
+          const period = meta.period ? `, data from ${meta.period.from} to ${meta.period.to}` : '';
+          document.getElementById('updated').textContent =
+            `Version ${meta.schema_version} of the contract · last export ${date}${period}.`;
+        })
+        .catch(() => {});
+    </script>
+  </body>
+</html>

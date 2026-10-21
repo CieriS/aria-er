@@ -57,8 +57,7 @@ jobs:
       - name: Transform and test
         run: make transform
       - name: Export
-        working-directory: orchestration
-        run: uv run python -m aria_er_orchestration.export --duckdb ../warehouse/aria_er.duckdb --out ../site/data/v1
+        run: make export
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site
