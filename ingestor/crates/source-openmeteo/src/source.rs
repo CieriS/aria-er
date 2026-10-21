@@ -1,5 +1,5 @@
 use aq_core::{DateWindow, Source, SourceError, WeatherObservation};
-use aq_http::{get_with_retry, HttpConfig, Transport};
+use aq_http::{get_parsed_with_retry, HttpConfig, Transport};
 use tracing::{debug, info};
 
 use crate::parse::parse_archive;
@@ -67,13 +67,13 @@ impl<T: Transport> Source for OpenMeteoSource<T> {
                 ("wind_speed_unit", "ms"),
                 ("timezone", "GMT"),
             ];
-            let body = get_with_retry(
+            let parsed = get_parsed_with_retry(
                 &self.transport,
                 &self.config.archive_url,
                 &query,
                 &self.http,
+                |body| parse_archive(body, chunk),
             )?;
-            let parsed = parse_archive(&body, chunk)?;
             debug!(
                 locations = chunk.len(),
                 rows = parsed.len(),

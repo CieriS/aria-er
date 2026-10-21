@@ -125,6 +125,44 @@ pub fn get_with_retry<T: Transport>(
     }
 }
 
+/// GET and parse, fetching again when the body does not parse.
+///
+/// A response cut short (a closed connection the client did not detect, a proxy giving
+/// up) arrives as a successful exchange: only parsing finds out. A format error is
+/// therefore retried like a transport one, with the same policy; one that persists is
+/// returned, so a real change of format still fails the run.
+pub fn get_parsed_with_retry<T: Transport, R>(
+    transport: &T,
+    url: &str,
+    query: &[(&str, &str)],
+    policy: &HttpConfig,
+    parse: impl Fn(&str) -> Result<R, SourceError>,
+) -> Result<R, SourceError> {
+    let max_attempts = policy.max_attempts.max(1);
+    let mut backoff = Duration::from_millis(policy.initial_backoff_ms);
+    let mut attempt = 1;
+    loop {
+        let body = get_with_retry(transport, url, query, policy)?;
+        match parse(&body) {
+            Ok(parsed) => return Ok(parsed),
+            Err(error @ SourceError::Format { .. }) if attempt < max_attempts => {
+                warn!(
+                    url,
+                    attempt,
+                    max_attempts,
+                    body_bytes = body.len(),
+                    error = %error,
+                    "response did not parse, fetching again"
+                );
+                thread::sleep(backoff);
+                backoff = backoff.saturating_mul(2);
+                attempt += 1;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
@@ -182,6 +220,41 @@ mod tests {
         let transport = Scripted::new(vec![failure(true), failure(true), Ok("ok".into())]);
         let error = get_with_retry(&transport, "http://x", &[], &policy(2)).unwrap_err();
         assert!(matches!(error, SourceError::Transport { attempts: 2, .. }));
+    }
+
+    fn parse_number(body: &str) -> Result<u32, SourceError> {
+        body.parse().map_err(|_| SourceError::Format {
+            context: "test".into(),
+            message: format!("not a number: {body}"),
+        })
+    }
+
+    #[test]
+    fn a_truncated_body_is_fetched_again() {
+        // A body cut short arrives as a successful response: only parsing finds out.
+        let transport = Scripted::new(vec![Ok("4x".into()), Ok("42".into())]);
+        let value =
+            get_parsed_with_retry(&transport, "http://x", &[], &policy(3), parse_number).unwrap();
+        assert_eq!(value, 42);
+        assert_eq!(*transport.calls.borrow(), 2);
+    }
+
+    #[test]
+    fn a_body_that_never_parses_fails_after_max_attempts() {
+        let transport = Scripted::new(vec![Ok("x".into()), Ok("y".into()), Ok("1".into())]);
+        let error = get_parsed_with_retry(&transport, "http://x", &[], &policy(2), parse_number)
+            .unwrap_err();
+        assert!(matches!(error, SourceError::Format { .. }));
+        assert_eq!(*transport.calls.borrow(), 2);
+    }
+
+    #[test]
+    fn a_transport_failure_is_not_retried_again_by_the_parser() {
+        let transport = Scripted::new(vec![failure(false), Ok("1".into())]);
+        let error = get_parsed_with_retry(&transport, "http://x", &[], &policy(5), parse_number)
+            .unwrap_err();
+        assert!(matches!(error, SourceError::Transport { attempts: 1, .. }));
+        assert_eq!(*transport.calls.borrow(), 1);
     }
 
     #[test]
