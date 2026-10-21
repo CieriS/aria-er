@@ -89,7 +89,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "aq-cli"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "anyhow",
  "aq-core",
@@ -108,7 +108,7 @@ dependencies = [
 
 [[package]]
 name = "aq-core"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "chrono",
  "thiserror",
@@ -116,7 +116,7 @@ dependencies = [
 
 [[package]]
 name = "aq-http"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "aq-core",
  "serde",
@@ -126,7 +126,7 @@ dependencies = [
 
 [[package]]
 name = "aq-sink-parquet"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "aq-core",
  "arrow-array",
@@ -142,7 +142,7 @@ dependencies = [
 
 [[package]]
 name = "aq-source-arpae"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "aq-core",
  "aq-http",
@@ -157,7 +157,7 @@ dependencies = [
 
 [[package]]
 name = "aq-source-openmeteo"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "aq-core",
  "aq-http",

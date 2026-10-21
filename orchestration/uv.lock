@@ -76,7 +76,7 @@ wheels = [
 
 [[package]]
 name = "aria-er-orchestration"
-version = "1.1.0"
+version = "1.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "dagster" },
