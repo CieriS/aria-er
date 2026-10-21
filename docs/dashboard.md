@@ -19,6 +19,10 @@ Filters (stations, pollutant, municipality, period) are in the sidebar of each p
 Below them the sidebar credits the two data sources on every page, as their licences ask
 (ARPAE: CC BY; Open-Meteo: CC BY 4.0, with a link).
 
+On Data completeness, red days are days a station missed while others reported; days not
+loaded for any station are blank, so a first start (archive up to the last full year, then
+only the last 30 days) does not read as a broken pipeline.
+
 The dashboard reads marts only and computes nothing: `data.py` holds one filtered `select`
 per mart, `charts.py` turns a mart DataFrame into an Altair chart, `views.py` wires widgets
 to the two. Thresholds, means and correlations all come from dbt. The warehouse is opened

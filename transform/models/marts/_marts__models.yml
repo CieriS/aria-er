@@ -48,7 +48,9 @@ models:
   - name: mart_data_completeness
     description: >
       Data coverage audit: one row per station, pollutant and day between the first and
-      last observation of the series, including days with no data at all.
+      last observation of the series, including days with no data for the station. Days on
+      which no station has any value are left out: they were not loaded, or the whole
+      network was down.
     data_tests:
       - unique_combination:
           arguments:
@@ -226,3 +228,31 @@ unit_tests:
     expect:
       rows:
         - {station_id: 1, pollutant_id: 5, metric: daily_mean, year: 2026, exceedances: 2, valid_periods: 4, max_value_ugm3: 62.7}
+
+  - name: completeness_grid_covers_only_loaded_days
+    model: mart_data_completeness
+    description: >
+      A day on which no station has any value was not loaded (or the whole network was
+      down) and is left out of the grid; a day missing for one station while others have
+      values is kept, with completeness 0.
+    given:
+      - input: ref('int_measurements_daily')
+        rows:
+          - {station_id: 1, pollutant_id: 5, pollutant_code: PM10, expected_measurements: 1, measurement_date: 2026-01-01, measurements: 1, valid_measurements: 1, is_valid_day: true}
+          - {station_id: 1, pollutant_id: 5, pollutant_code: PM10, expected_measurements: 1, measurement_date: 2026-01-03, measurements: 1, valid_measurements: 1, is_valid_day: true}
+          - {station_id: 1, pollutant_id: 5, pollutant_code: PM10, expected_measurements: 1, measurement_date: 2026-01-10, measurements: 1, valid_measurements: 1, is_valid_day: true}
+          - {station_id: 2, pollutant_id: 5, pollutant_code: PM10, expected_measurements: 1, measurement_date: 2026-01-01, measurements: 1, valid_measurements: 1, is_valid_day: true}
+          - {station_id: 2, pollutant_id: 5, pollutant_code: PM10, expected_measurements: 1, measurement_date: 2026-01-02, measurements: 1, valid_measurements: 1, is_valid_day: true}
+          - {station_id: 2, pollutant_id: 5, pollutant_code: PM10, expected_measurements: 1, measurement_date: 2026-01-10, measurements: 1, valid_measurements: 1, is_valid_day: true}
+      - input: ref('int_stations_current')
+        rows: []
+    expect:
+      rows:
+        - {station_id: 1, measurement_date: 2026-01-01, completeness: 1.0}
+        - {station_id: 1, measurement_date: 2026-01-02, completeness: 0.0}
+        - {station_id: 1, measurement_date: 2026-01-03, completeness: 1.0}
+        - {station_id: 1, measurement_date: 2026-01-10, completeness: 1.0}
+        - {station_id: 2, measurement_date: 2026-01-01, completeness: 1.0}
+        - {station_id: 2, measurement_date: 2026-01-02, completeness: 1.0}
+        - {station_id: 2, measurement_date: 2026-01-03, completeness: 0.0}
+        - {station_id: 2, measurement_date: 2026-01-10, completeness: 1.0}
