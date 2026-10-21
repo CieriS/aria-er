@@ -124,3 +124,45 @@ fn source_chunks_locations_and_queries_utc_days() {
     assert_eq!(param(0, "timezone"), "GMT");
     assert_eq!(param(0, "wind_speed_unit"), "ms");
 }
+
+/// First answers with the real response cut in half, then with the whole of it.
+struct TruncatedOnce {
+    calls: RefCell<u32>,
+}
+
+impl Transport for TruncatedOnce {
+    fn get(&self, _url: &str, _query: &[(&str, &str)]) -> Result<String, TransportError> {
+        *self.calls.borrow_mut() += 1;
+        if *self.calls.borrow() == 1 {
+            Ok(ONE[..ONE.len() / 2].to_owned())
+        } else {
+            Ok(ONE.to_owned())
+        }
+    }
+}
+
+#[test]
+fn a_response_cut_short_is_fetched_again() {
+    // Seen on 2026-10-21: an archive response ending mid-array failed the whole run.
+    let config = OpenMeteoConfig {
+        archive_url: "http://openmeteo.test/v1/archive".to_owned(),
+        coordinate_decimals: 1,
+        max_locations_per_request: 1,
+    };
+    let http = HttpConfig {
+        connect_timeout_secs: 1,
+        timeout_secs: 1,
+        max_attempts: 3,
+        initial_backoff_ms: 0,
+    };
+    let transport = TruncatedOnce {
+        calls: RefCell::new(0),
+    };
+    let source = OpenMeteoSource::new(transport, config, http, locations()[..1].to_vec()).unwrap();
+    let day = NaiveDate::from_ymd_opt(2025, 2, 23).unwrap();
+
+    let rows = source.fetch(DateWindow::new(day, day).unwrap()).unwrap();
+
+    assert_eq!(rows.len(), 24);
+    assert_eq!(*source.transport().calls.borrow(), 2);
+}
