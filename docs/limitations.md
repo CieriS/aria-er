@@ -74,7 +74,7 @@ What does not work, is approximate, or is still manual.
   the daemon is running a job: both would read the same monthly file and the one that writes
   last would discard the rows of the other.
 - The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
-- **The cloud target was run once, by hand** (2026-10-21, [cloud.md](cloud.md)): nothing
-  schedules it, and the service accounts have no keys until someone creates them.
+- **The cloud target was run once, by hand** (2026-10-21, [cloud.md](cloud.md)), and its project
+  deleted after the release: nothing schedules it, and running it again needs a new GCP project.
 - On BigQuery every build re-reads the Parquet files behind the external tables; with a much larger
   archive this would leave the free tier of read operations.
