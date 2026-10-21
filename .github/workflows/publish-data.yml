@@ -23,7 +23,8 @@ jobs:
   build:
     name: Pipeline and export
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # A first run also fills up to six missing months, about five minutes each.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install the stable toolchain
@@ -37,14 +38,22 @@ jobs:
           cache-dependency-glob: |
             transform/uv.lock
             orchestration/uv.lock
-      # The raw layer of the previous run: only the default window is fetched again.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # The raw layer of the previous run: only the default window and the missing months are
+      # fetched again. Saved even when a later step fails, so fetched months are not lost.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: raw
           key: raw-${{ github.run_id }}
           restore-keys: raw-
       - name: Ingest
         run: make ingest
+      - name: Fill the months between the archive and the daily window
+        run: make fill-gaps MONTHS=6
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always()
+        with:
+          path: raw
+          key: raw-${{ github.run_id }}
       - name: Transform and test
         run: make transform
       - name: Export
