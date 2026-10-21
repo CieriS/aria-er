@@ -74,9 +74,7 @@ What does not work, is approximate, or is still manual.
   the daemon is running a job: both would read the same monthly file and the one that writes
   last would discard the rows of the other.
 - The ARPAE API is slow and intermittently returns 502; runs rely on retries with backoff.
-- **The cloud target has not been run on a real GCP project yet.** Terraform is validated, the
-  storage backend is tested on an in-memory object store, and the BigQuery SQL is executed on an
-  emulator with results identical to DuckDB. External tables, IAM and dbt's BigQuery
-  materialisations are unverified. See [cloud.md](cloud.md).
+- **The cloud target was run once, by hand** (2026-10-21, [cloud.md](cloud.md)): nothing
+  schedules it, and the service accounts have no keys until someone creates them.
 - On BigQuery every build re-reads the Parquet files behind the external tables; with a much larger
   archive this would leave the free tier of read operations.

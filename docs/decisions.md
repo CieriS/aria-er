@@ -147,6 +147,8 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 - **Two Terraform passes**: external tables are enabled after the first ingestion, since
   BigQuery needs files to exist under their prefix.
 - **CI plans, never applies**, and only where the repository has the GCP settings.
+- **First real run on 2026-10-21**, with marts identical to DuckDB on the same files
+  ([cloud.md](cloud.md#first-run)).
 
 ## Phase 8 — streaming (not built)
 
