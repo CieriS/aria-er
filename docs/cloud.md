@@ -180,6 +180,9 @@ the external tables read the hive-partitioned files, the service accounts and bi
 created, and dbt's BigQuery materialisations (seed load, snapshot, incremental model) ran on
 the first attempt, the incremental merge and the snapshot on the second build.
 
+The project was deleted after the `v1.0.0` release (2026-10-21), so nothing of this run is
+left in the cloud; running it again means repeating the setup above on a new project.
+
 **Cost of the run:** 278 BigQuery jobs (two builds and the comparisons), 0.84 GB processed
 and 2.95 GB billed (BigQuery bills at least 10 MB per query), against 1 TB free per month;
 4 MB in Cloud Storage. No charge.
