@@ -20,3 +20,4 @@ infra/.terraform/
 infra/*.tfvars
 infra/*.tfstate*
 infra/tfplan
+/site/

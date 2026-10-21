@@ -14,6 +14,7 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
 | [0006](adr/0006-gcs-and-bigquery-as-a-second-target.md) | Cloud Storage and BigQuery as a second target of the same pipeline | accepted, not yet run on GCP |
 | [0007](adr/0007-no-streaming.md) | Streaming is not justified for these data | accepted |
 | [0008](adr/0008-rest-archive-as-the-measurement-source.md) | Measurements from the REST archive, ids and reference times translated by the adapter | accepted |
+| [0009](adr/0009-daily-json-export-on-github-pages.md) | The marts published daily as JSON on GitHub Pages, read by the portfolio in the browser | accepted |
 
 ## Phase 1 — Rust ingestor
 
@@ -156,3 +157,9 @@ Decisions by phase, with the alternatives discarded. Architecture Decision Recor
   over HTTP, published hours after measurement and revised for months; every question the
   platform answers is daily or coarser. If fresher data is ever needed, the idempotent
   schedule can simply run more often.
+
+## After 1.0.0 — public results
+
+- **A daily JSON export on GitHub Pages** ([ADR 0009](adr/0009-daily-json-export-on-github-pages.md)),
+  read by the portfolio case study. This repository publishes data with a versioned
+  contract ([export.md](export.md)); the charts and their design live in the portfolio.
