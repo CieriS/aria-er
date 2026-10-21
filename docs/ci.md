@@ -16,7 +16,11 @@ dependency cache:
 | [dbt](../.github/workflows/dbt.yml) | `dbt build` on DuckDB with the committed fixtures, twice (full and incremental) |
 | [Docker](../.github/workflows/docker.yml) | `docker compose build` of the images `make up` starts; only on changes to the Dockerfiles, the compose file, the ingestor or the Python dependencies |
 
-No workflow calls ARPAE or Open-Meteo: sources are mocked behind traits in Rust, and dbt
+One more workflow is scheduled rather than triggered by a change:
+[Publish data](../.github/workflows/publish-data.yml) runs the whole pipeline against the
+live sources once a day and publishes the marts on GitHub Pages ([export.md](export.md)).
+
+No other workflow calls ARPAE or Open-Meteo: sources are mocked behind traits in Rust, and dbt
 reads `transform/fixtures/`. `make transform-fixtures` runs the dbt job locally. Actions are
 pinned by commit, and Dependabot proposes weekly updates for actions, crates, Python
 packages and base images.

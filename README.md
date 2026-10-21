@@ -120,6 +120,7 @@ Everything in the diagram runs locally; the BigQuery side has also run on a real
 | Dashboard pages and structure | [docs/dashboard.md](docs/dashboard.md) |
 | CI workflows, fixtures, branch protection | [docs/ci.md](docs/ci.md) |
 | Google Cloud: setup, cost, teardown | [docs/cloud.md](docs/cloud.md) |
+| Daily JSON export of the marts (GitHub Pages) | [docs/export.md](docs/export.md) |
 | Design decisions by phase and ADR index | [docs/decisions.md](docs/decisions.md), [docs/adr/](docs/adr/) |
 | Known limitations | [docs/limitations.md](docs/limitations.md) |
 
