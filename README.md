@@ -162,6 +162,10 @@ infra/                Terraform for GCP: bucket, BigQuery datasets, service acco
 Makefile              ingest / transform / orchestrate / backfill / dashboard / up / down / test / lint / cloud-*
 ```
 
+## Git hooks
+
+`.githooks/pre-push` runs before every push: a secret scan of the outgoing commits (gitleaks, or its Docker image when the binary is missing) and then the fast checks (`make lint && cargo test --manifest-path ingestor/Cargo.toml`). Enable it once per clone with `git config core.hooksPath .githooks`. Skip it once with `git push --no-verify`. On CI, `.github/workflows/secret-scan.yml` scans the whole history of every branch and tag.
+
 ## License and data
 
 The code is released under the [MIT License](LICENSE).
