@@ -1,0 +1,10 @@
+changelog:
+  categories:
+    - title: Breaking changes
+      labels: [semver:major]
+    - title: Features
+      labels: [semver:minor]
+    - title: Fixes and maintenance
+      labels: [semver:patch, dependencies]
+    - title: Other
+      labels: ['*']
