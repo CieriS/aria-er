@@ -12,6 +12,7 @@ make ingest FROM=2026-08-01 TO=2026-08-31     # explicit window, inclusive
 make transform                                # dbt build (seeds, snapshot, models, tests) + source freshness
 make orchestrate                              # Dagster UI + daemon on http://localhost:3000
 make backfill FROM=2026-08-01 TO=2026-08-31   # ingestion + dbt for a range of days, as one run
+make fill-gaps MONTHS=6                       # months between the archive and the daily window that raw/ lacks
 make dashboard                                # Streamlit dashboard on http://localhost:8501
 make test                                     # Rust tests (no network) + dbt build with its data tests + pytest
 make lint                                     # cargo fmt + clippy, ruff + mypy --strict

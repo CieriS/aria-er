@@ -12,6 +12,13 @@ portfolio ([ADR 0009](adr/0009-daily-json-export-on-github-pages.md)).
   If any step fails, nothing is deployed and the previous export stays online.
 - The raw layer is cached between runs, so a run fetches only the default window (30 days)
   and reloads the archive only when its files change.
+- **Months the window never reaches are filled from the raw layer itself**
+  (`make fill-gaps`, module `aria_er_orchestration.gaps`): from the day after the last day of
+  the historical archive to today, every month without values on its first and last day
+  (the current month: on its first day) is fetched, oldest first, at most six per run. No date
+  is written anywhere: a new year, or a newer archive, moves the start on its own. A first
+  run fills the current year over a couple of days; the cache is saved even when a run fails,
+  so fetched months are kept.
 
 Locally: `make export` writes the same files to `site/data/v1/` from `warehouse/aria_er.duckdb`.
 

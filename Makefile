@@ -26,6 +26,20 @@ transform:
 	$(DBT) build --profiles-dir .
 	$(DBT) source freshness --profiles-dir .
 
+# The months between the archive and the daily window that raw/ lacks, at most MONTHS per call
+# (the first start loads only the last 30 days of the current year).
+MONTHS ?= 6
+.PHONY: fill-gaps
+fill-gaps: build
+	mkdir -p warehouse
+	cd orchestration && uv run python -m aria_er_orchestration.gaps --raw ../raw --max-months $(MONTHS) \
+		> ../warehouse/gaps.txt
+	while read -r from to; do \
+		echo "fetching $$from to $$to"; \
+		ingestor/target/release/aq-ingest --config $(CONFIG) run --from $$from --to $$to || exit 1; \
+		ingestor/target/release/aq-ingest --config $(CONFIG) weather --from $$from --to $$to || exit 1; \
+	done < warehouse/gaps.txt
+
 # The marts as JSON, as the daily Publish data workflow writes them (docs/export.md).
 .PHONY: export
 export:
