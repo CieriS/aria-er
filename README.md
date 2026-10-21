@@ -39,9 +39,9 @@ six to twelve minutes (last checked on a clean clone on 2026-10-14). ARPAE adds 
 its archive about an hour after it ends and the schedule ingests once a day; the archive has
 paused for days before and filled the gap afterwards ([docs/data.md](docs/data.md)).
 
-**Not done:** the Google Cloud target is implemented and tested on an emulator, but has never
-run on a real project ([docs/cloud.md](docs/cloud.md)). What is approximate or manual is in
-[docs/limitations.md](docs/limitations.md).
+**In the cloud too:** the same models ran on BigQuery in a real GCP project on 2026-10-21, with
+marts identical to DuckDB on the same files, inside the free tier ([docs/cloud.md](docs/cloud.md)).
+What is approximate or manual is in [docs/limitations.md](docs/limitations.md).
 
 ![Thirty-six seconds of the running stack: the two Dagster runs of a first start, the asset lineage, and four pages of the dashboard](docs/img/tour.gif)
 
@@ -106,7 +106,7 @@ Open-Meteo ────┘                          │
                                  Streamlit dashboard
 ```
 
-Everything in the diagram runs locally; the BigQuery side has only run on an emulator.
+Everything in the diagram runs locally; the BigQuery side has also run on a real GCP project.
 
 ## Documentation
 
@@ -132,7 +132,7 @@ Everything in the diagram runs locally; the BigQuery side has only run on an emu
 - [x] **4. Second source** — Open-Meteo + `mart_weather_correlation`
 - [x] **5. Dashboard** — Streamlit
 - [x] **6. Full CI** + Docker Compose
-- [ ] **7. Cloud** — GCS + BigQuery via Terraform, same dbt models with a different target
+- [x] **7. Cloud** — GCS + BigQuery via Terraform, same dbt models with a different target
   (code, Terraform and CI ready; the end-to-end run on GCP is still to do)
 - [x] **8. (Optional) Streaming** — evaluated and not built: the sources are daily batches
   ([ADR 0007](docs/adr/0007-no-streaming.md))
