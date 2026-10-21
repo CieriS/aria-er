@@ -33,8 +33,9 @@ def today_in_arpae_time(now: datetime) -> date:
 
 
 def _stamps(raw_dir: Path, source: str, query: str) -> list[datetime]:
-    pattern = raw_dir / "arpae" / source / "*" / "*" / "*.parquet"
-    if not any(raw_dir.glob(f"arpae/{source}/*/*/*.parquet")):
+    """`source` is a path under the raw layer, e.g. `arpae/measurements`."""
+    pattern = raw_dir / source / "*" / "*" / "*.parquet"
+    if not any(raw_dir.glob(f"{source}/*/*/*.parquet")):
         return []
     with duckdb.connect() as connection:
         connection.execute("set TimeZone = 'UTC'")
@@ -44,7 +45,7 @@ def _stamps(raw_dir: Path, source: str, query: str) -> list[datetime]:
 
 def archive_end(raw_dir: Path) -> date | None:
     """Last day of the historical archive in the raw layer, or None when there is none."""
-    stamps = _stamps(raw_dir, "measurements_archive", "select max(measured_at) from {files}")
+    stamps = _stamps(raw_dir, "arpae/measurements_archive", "select max(measured_at) from {files}")
     return legal_day(stamps[0]) if stamps else None
 
 
@@ -52,11 +53,19 @@ def loaded_days(raw_dir: Path) -> set[date]:
     """Days with at least one recent measurement in the raw layer."""
     stamps = _stamps(
         raw_dir,
-        "measurements",
+        "arpae/measurements",
         # One stamp per hour is enough to know which days are there.
         "select distinct date_trunc('hour', measured_at) from {files}",
     )
     return {legal_day(stamp) for stamp in stamps}
+
+
+def weather_days(raw_dir: Path) -> set[date]:
+    """UTC days with at least one weather value: Open-Meteo is queried by UTC day."""
+    stamps = _stamps(
+        raw_dir, "openmeteo/weather", "select distinct date_trunc('hour', observed_at) from {files}"
+    )
+    return {stamp.astimezone(UTC).date() for stamp in stamps}
 
 
 def _months(since: date, today: date) -> list[tuple[date, date]]:
@@ -105,8 +114,11 @@ def main(argv: Sequence[str] | None = None) -> None:
     end = archive_end(arguments.raw)
     # Without an archive, the current year: the archive is what covers earlier years.
     since = end + timedelta(days=1) if end else date(today.year, 1, 1)
+    # A month counts only when both sources have it: `fill-gaps` fetches the two together,
+    # and a run that failed between them must not leave the second one out for good.
+    loaded = loaded_days(arguments.raw) & weather_days(arguments.raw)
     windows = missing_windows(
-        since=since, today=today, loaded=loaded_days(arguments.raw), max_months=arguments.max_months
+        since=since, today=today, loaded=loaded, max_months=arguments.max_months
     )
     for first, last in windows:
         print(f"{first.isoformat()} {last.isoformat()}")

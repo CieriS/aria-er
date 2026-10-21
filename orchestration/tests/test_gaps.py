@@ -10,6 +10,7 @@ from aria_er_orchestration.gaps import (
     loaded_days,
     main,
     missing_windows,
+    weather_days,
 )
 
 ARPAE = timedelta(hours=1)
@@ -148,6 +149,7 @@ def test_the_command_prints_one_window_per_line(
         tmp_path, "measurements_archive", hourly(date(2025, 12, 31), date(2025, 12, 31))
     )
     write_measurements(tmp_path, "measurements", hourly(date(2026, 2, 1), date(2026, 2, 10)))
+    write_weather(tmp_path, [date(2026, 2, 1) + timedelta(days=day) for day in range(10)])
 
     main(["--raw", str(tmp_path), "--today", "2026-02-10", "--max-months", "6"])
 
@@ -171,3 +173,46 @@ def test_the_current_month_needs_only_its_first_day_since_today_is_not_published
         since=date(2026, 10, 1), today=date(2026, 10, 21), loaded=until_yesterday, max_months=12
     )
     assert windows == []
+
+
+def write_weather(raw: Path, days: list[date]) -> None:
+    """Hourly weather rows, stamped at the start of the hour in UTC, as Open-Meteo gives them."""
+    with duckdb.connect() as connection:
+        connection.execute("set TimeZone = 'UTC'")
+        by_month: dict[tuple[int, int], list[date]] = {}
+        for day in days:
+            by_month.setdefault((day.year, day.month), []).append(day)
+        for (year, month), values in by_month.items():
+            folder = raw / "openmeteo" / "weather" / f"year={year}" / f"month={month:02d}"
+            folder.mkdir(parents=True)
+            rows = ", ".join(
+                f"(timestamptz '{day.isoformat()}T{hour:02d}:00:00+00:00')"
+                for day in values
+                for hour in range(24)
+            )
+            connection.execute(
+                f"copy (select * from (values {rows}) t(observed_at)) "
+                f"to '{folder / 'part-0.parquet'}' (format parquet)"
+            )
+
+
+def test_weather_days_are_utc_days_with_any_value(tmp_path: Path) -> None:
+    write_weather(tmp_path, [date(2026, 2, 1), date(2026, 2, 28)])
+    assert weather_days(tmp_path) == {date(2026, 2, 1), date(2026, 2, 28)}
+
+
+def test_a_month_with_measurements_but_no_weather_is_missing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Seen on 2026-10-21: a run fetched February's measurements, then failed on its weather.
+    write_measurements(
+        tmp_path, "measurements_archive", hourly(date(2025, 12, 31), date(2025, 12, 31))
+    )
+    write_measurements(tmp_path, "measurements", hourly(date(2026, 1, 1), date(2026, 3, 5)))
+    january = [date(2026, 1, 1) + timedelta(days=day) for day in range(31)]
+    march = [date(2026, 3, 1) + timedelta(days=day) for day in range(5)]
+    write_weather(tmp_path, january + march)
+
+    main(["--raw", str(tmp_path), "--today", "2026-03-05", "--max-months", "6"])
+
+    assert capsys.readouterr().out.splitlines() == ["2026-02-01 2026-02-28"]
