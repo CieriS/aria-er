@@ -44,6 +44,7 @@ fill-gaps: build
 .PHONY: export
 export:
 	cd orchestration && uv run python -m aria_er_orchestration.export --duckdb ../warehouse/aria_er.duckdb --out ../site/data/v1
+	cp pages/index.html site/index.html
 
 # dbt build on the committed fixtures, in a throwaway database: no network, no raw/ needed.
 # Runs twice so that the incremental path is exercised too. This is what the CI runs.

@@ -20,7 +20,9 @@ portfolio ([ADR 0009](adr/0009-daily-json-export-on-github-pages.md)).
   run fills the current year over a couple of days; the cache is saved even when a run fails,
   so fetched months are kept.
 
-Locally: `make export` writes the same files to `site/data/v1/` from `warehouse/aria_er.duckdb`.
+Locally: `make export` writes the same files to `site/data/v1/` from `warehouse/aria_er.duckdb`,
+and copies `pages/index.html`, the page at the root of the site that lists the files and links
+the case study: `https://cieris.github.io/aria-er/`.
 
 ## Contract (`v1`)
 
