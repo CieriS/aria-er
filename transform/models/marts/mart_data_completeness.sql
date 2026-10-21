@@ -18,7 +18,16 @@ series as (
 
 ),
 
--- Expected grid: every day between the first and last observation of each series.
+-- Days on which at least one station has a value. A day with none was not loaded (only
+-- the last weeks of the current year are, on a first start) or the whole network was down:
+-- either way it says nothing about a single station, so it is left out of the grid.
+loaded_days as (
+
+    select distinct measurement_date from daily
+
+),
+
+-- Expected grid: every loaded day between the first and last observation of each series.
 -- Missing data are absent rows upstream, so gaps only show against this grid.
 expected as (
 
@@ -30,6 +39,7 @@ expected as (
         cast(spine_date as date) as measurement_date
     from series,
         {{ unnest_days('series.first_date', 'series.last_date') }}
+    where cast(spine_date as date) in (select measurement_date from loaded_days)
 
 )
 

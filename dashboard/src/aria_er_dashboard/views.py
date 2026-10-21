@@ -180,5 +180,6 @@ def completeness() -> None:
     st.altair_chart(charts.completeness_chart(frame), width="stretch")
     st.caption(
         "Share of expected values that are valid, per day. Red days have no usable data; "
-        "a day counts as complete from 75%."
+        "a day counts as complete from 75%. Blank days were not loaded for any station "
+        "(on a first start, only the last 30 days of the current year are)."
     )

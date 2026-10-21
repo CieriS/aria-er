@@ -21,7 +21,7 @@ least once.
 | intermediate | `int_o3_8h_rolling` | Rolling 8-hour ozone mean, on every hour between the first and last day of a series |
 | intermediate | `int_stations_current` | Current attributes of each station |
 | mart | `mart_exceedances_yearly` | Exceedances of each legal limit per station and year |
-| mart | `mart_data_completeness` | Coverage per station, pollutant and day, including empty days |
+| mart | `mart_data_completeness` | Coverage per station, pollutant and day, including days a station missed |
 | staging | `stg_openmeteo__weather` | Hourly weather per location, UTC timestamp |
 | intermediate | `int_weather_daily` | Daily wind, precipitation, temperature and pressure per location |
 | mart | `mart_weather_correlation` | PM10 vs wind and rain, per station and season |
@@ -51,6 +51,10 @@ Rules applied:
   Two tests with `warn` severity surface them without failing the build.
 - **Incremental lookback of 30 days**, the same window the ingestor reprocesses. Archive rows not
   loaded yet are added whatever their age.
+- **Completeness only on loaded days.** The grid of `mart_data_completeness` runs from the first
+  to the last day of each series, but skips days on which no station has any value: those were
+  not loaded (a first start loads ten years of archive and the last 30 days, not what lies in
+  between) or the whole network was down, and neither says anything about one station.
 - **Freshness**: `dbt source freshness` warns when the newest measurement is older than 48 hours.
 
 ### Check against the ARPAE annual report (Bologna, 2025)
