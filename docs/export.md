@@ -28,7 +28,8 @@ the case study: `https://cieris.github.io/aria-er/`.
 
 Every file is a JSON array of flat objects, except `meta.json`. Concentrations are in µg/m³,
 floats are rounded to three decimals, and a value that is not a number (a correlation over
-too few days) is `null`. Dates are ISO `YYYY-MM-DD` days in ARPAE local standard time
+too few days) is `null`. Stations of the local networks are not in the ARPAE station registry:
+their `municipality` is `null`, so a reader that groups by municipality has to expect it. Dates are ISO `YYYY-MM-DD` days in ARPAE local standard time
 (UTC+1 all year); `generated_at` is UTC. Column meanings are those of the marts, described in
 [transformations.md](transformations.md) and in the dbt YAML.
 
