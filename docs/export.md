@@ -14,8 +14,8 @@ portfolio ([ADR 0009](adr/0009-daily-json-export-on-github-pages.md)).
   and reloads the archive only when its files change.
 - **Months the window never reaches are filled from the raw layer itself**
   (`make fill-gaps`, module `aria_er_orchestration.gaps`): from the day after the last day of
-  the historical archive to today, every month without values on its first and last day
-  (the current month: on its first day) is fetched, oldest first, at most six per run. No date
+  the historical archive to today, every month without measurements and weather on its first and last day
+  (the current month: on its first day) is fetched, both sources together, oldest first, at most six per run. No date
   is written anywhere: a new year, or a newer archive, moves the start on its own. A first
   run fills the current year over a couple of days; the cache is saved even when a run fails,
   so fetched months are kept.
